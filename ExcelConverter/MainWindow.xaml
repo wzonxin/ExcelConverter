@@ -5,18 +5,29 @@
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         xmlns:local="clr-namespace:ExcelConverter"
         mc:Ignorable="d"
-        Title="MainWindow" Height="450" Width="800"
+        Title="MainWindow" Height="530" Width="800"
         Loaded="OnWindowLoaded"
         Closed="OnWindowClosed">
     <Grid>
-        <Button Content="转换" HorizontalAlignment="Left" Height="20" Margin="64,23,0,0" VerticalAlignment="Top" Width="99" Click="Convert"/>
-        <Button Content="扫描" HorizontalAlignment="Left" Height="20" Margin="254,23,0,0" VerticalAlignment="Top" Width="99" Click="ScanDir"/>
-        <Label Content="固定" HorizontalAlignment="Left" Height="24" VerticalAlignment="Top" Width="176" Margin="10,68,0,0"/>
-        <ScrollViewer Margin="10,97,10,274"/>
-        <TreeView Name="DirTreeView"  Margin="0,235,0,0" ItemsSource="{Binding DataSource}">
+        <Button Content="开始转表" HorizontalAlignment="Left" Height="20" Margin="65,33,0,0" VerticalAlignment="Top" Width="99" Click="Convert"/>
+        <Button Content="扫描文件夹" HorizontalAlignment="Left" Height="20" Margin="251,33,0,0" VerticalAlignment="Top" Width="99" Click="ScanDir"/>
+        <Label Content="收藏列表：" HorizontalAlignment="Left" Height="24" VerticalAlignment="Top" Width="176" Margin="10,68,0,0"/>
+        <ScrollViewer Margin="10,97,10,294" BorderThickness="1,1,1,1">
+            <UniformGrid Columns="6" x:Name="FavGrid">
+                <Label Content="空" Height="28" Width="117"/>
+            </UniformGrid>
+        </ScrollViewer>
+        <TreeView Name="DirTreeView"  Margin="0,220,0,0" ItemsSource="{Binding DataSource}">
             <TreeView.ItemTemplate>
                 <HierarchicalDataTemplate ItemsSource="{Binding Child}" DataType="{x:Type local:TreeNode}">
-                    <Button Content="{Binding Name}" Width="Auto" Click="OnItemSelect" Background="White" BorderThickness="0,0,0,0" Tag="{Binding Tag}"/>
+                    <Button Content="{Binding Name}" Width="Auto" Click="OnItemSelect" Background="White" BorderThickness="0,0,0,0" Tag="{Binding Path}">
+                        <Button.ContextMenu>
+                            <ContextMenu>
+                                <MenuItem Header="添加收藏" Name="MenuItemAddNode" Click="MenuItemAddNodeClick" Tag="{Binding Path}"/>
+                                <MenuItem Header="删除收藏" Name="MenuItemDeleteNode" Click="MenuItemDeleteNodeClick" Tag="{Binding Path}"/>
+                            </ContextMenu>
+                        </Button.ContextMenu>
+                    </Button>
                 </HierarchicalDataTemplate>
             </TreeView.ItemTemplate>
 
@@ -26,13 +37,6 @@
                     <Setter Property="IsExpanded" Value="{Binding IsExpanded}"/>
                 </Style>
             </TreeView.ItemContainerStyle>
-
-            <TreeView.ContextMenu>
-                <ContextMenu x:Name="ContextMenu_EditNode">
-                    <MenuItem Header="新增节点" Name="MenuItem_AddNode" Click="MenuItem_AddNode_Click" Tag="{Binding Tag}"/>
-                    <MenuItem Header="删除节点" Name="MenuItem_DeleteNode" Click="MenuItem_DeleteNode_Click"/>
-                </ContextMenu>
-            </TreeView.ContextMenu>
         </TreeView>
 
     </Grid>

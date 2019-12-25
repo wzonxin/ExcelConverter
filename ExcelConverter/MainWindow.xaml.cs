@@ -2,18 +2,8 @@
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 using System.Windows;
 using System.Windows.Controls;
-using System.Windows.Data;
-using System.Windows.Documents;
-using System.Windows.Input;
-using System.Windows.Media;
-using System.Windows.Media.Imaging;
-using System.Windows.Navigation;
-using System.Windows.Shapes;
 
 namespace ExcelConverter
 {
@@ -23,7 +13,7 @@ namespace ExcelConverter
     public partial class MainWindow : Window
     {
         public List<TreeNode> DataSource { get; set; }
-        private List<string> _favList = new List<string>();
+        private List<TreeNode> _favList;
 
         public MainWindow()
         {
@@ -32,15 +22,60 @@ namespace ExcelConverter
 
         private void OnWindowLoaded(object sender, RoutedEventArgs e)
         {
-            ReloadList();
+            LoadExcelTree();
+            LoadFavList();
         }
 
         private void OnWindowClosed(object sender, EventArgs e)
         {
-
         }
 
-        private void ReloadList()
+        private void LoadFavList()
+        {
+            _favList = Utils.ReadFav();
+            if (_favList.Count <= 0) return;
+
+            float width = 70;
+            float height = 30;
+            int colMax = 6;
+
+            FavGrid.Children.Clear();
+            for (int i = 0; i < _favList.Count; i++)
+            {
+                int row = i / colMax;
+                int col = i % colMax;
+                Button bt = GenFavItem(height, _favList[i]);
+
+                Canvas.SetTop(bt, row * height + 5);
+                Canvas.SetLeft(bt, col * width + 5);
+
+                FavGrid.Children.Add(bt);
+            }
+        }
+
+        private Button GenFavItem(float height, TreeNode treeNode)
+        {
+            Button bt = new Button()
+            {
+                Width = double.NaN,
+                Height = height,
+                Content = treeNode.Name,
+                Tag = treeNode.Path
+            };
+            bt.Click += FavItemClick;
+
+            bt.ContextMenu = new ContextMenu();
+            List<MenuItem> menuItems = new List<MenuItem>();
+            bt.ContextMenu.ItemsSource = menuItems;
+            var item = new MenuItem();
+            item.Header = "删除";
+            item.Click += MenuItemDeleteNodeClick;
+            item.Tag = treeNode.Path;
+            menuItems.Add(item);
+            return bt;
+        }
+
+        private void LoadExcelTree()
         {
             string runningPath = AppDomain.CurrentDomain.BaseDirectory;
             string xlsPath = runningPath + "xls\\";
@@ -51,15 +86,6 @@ namespace ExcelConverter
 
             DataSource = rootNode.Child;
             DirTreeView.ItemsSource = DataSource;
-
-            //foreach (var item in this.DirTreeView.Items)
-            //{
-            //    DependencyObject dependencyObject = this.DirTreeView.ItemContainerGenerator.ContainerFromItem(item);
-            //    if (dependencyObject != null)
-            //    {
-            //        ((TreeViewItem)dependencyObject).ExpandSubtree();
-            //    }
-            //}
         }
 
         private void Convert(object sender, RoutedEventArgs e)
@@ -69,13 +95,12 @@ namespace ExcelConverter
 
         private void ScanDir(object sender, RoutedEventArgs e)
         {
-            ReloadList();
+            LoadExcelTree();
         }
 
         private void Search(TreeNode root, string path, NodeType nodeType)
         {
             root.Path = path;
-            root.Tag = root.GetHashCode();
             var lastIndexOf = path.LastIndexOf("\\", StringComparison.Ordinal) + 1;
             root.Name = path.Substring(lastIndexOf, path.Length - lastIndexOf);
 
@@ -108,30 +133,35 @@ namespace ExcelConverter
             root.Child = childNodes;
         }
 
-        private void MenuItem_AddNode_Click(object sender, RoutedEventArgs e)
+        private void MenuItemAddNodeClick(object sender, RoutedEventArgs e)
         {
             var tag = ((MenuItem)sender).Tag;
-            FindNodeByTag(tag)
-            var node = (TreeNode)treeItem.DataContext;
-            _favList.Add(node.Path);
-
-            Utils.SaveFav(_favList);
+            var node = FindTreeNode((string) tag);
+            if (!_favList.Contains(node))
+            {
+                _favList.Add(node);
+                Utils.SaveFav(_favList);
+            }
+            LoadFavList();
         }
 
-        private void MenuItem_DeleteNode_Click(object sender, RoutedEventArgs e)
+        private void MenuItemDeleteNodeClick(object sender, RoutedEventArgs e)
         {
-            var treeItem = (TreeViewItem)sender;
-            var node = (TreeNode)treeItem.DataContext;
-            _favList.Remove(node.Path);
-
-            Utils.SaveFav(_favList);
+            var tag = ((MenuItem)sender).Tag;
+            var node = FindTreeNode((string) tag);
+            if (_favList.Contains(node))
+            {
+                _favList.Remove(node);
+                Utils.SaveFav(_favList);
+            }
+            LoadFavList();
         }
 
         private void OnItemSelect(object sender, RoutedEventArgs e)
         {
             Button btn = (Button)sender;
             ItemContainerGenerator gen;
-            TreeNode node = FindTreeNode((int)btn.Tag, out gen);
+            TreeNode node = FindTreeNode((string) btn.Tag, out gen);
 
             if (node == null)
                 return;
@@ -147,27 +177,44 @@ namespace ExcelConverter
             }
             else
             {
-                Process.Start(new ProcessStartInfo(node.Path) { UseShellExecute = true }); ;
+                Process.Start(new ProcessStartInfo(node.Path) { UseShellExecute = true });
             }
         }
 
-        private TreeNode FindTreeNode(int tag)
+        private void FavItemClick(object sender, RoutedEventArgs e)
+        {
+            Button btn = (Button)sender;
+            TreeNode node = FindTreeNode((string)btn.Tag);
+            if (node == null)
+                return;
+
+            if (node.Type == NodeType.Dir)
+            {
+                Process.Start(new ProcessStartInfo(node.Path) { UseShellExecute = true });
+            }
+            else
+            {
+                Process.Start(new ProcessStartInfo(node.Path) { UseShellExecute = true });
+            }
+        }
+
+        private TreeNode FindTreeNode(string tag)
         {
             ItemContainerGenerator gen;
             return FindNodeByTag(DirTreeView.ItemContainerGenerator, tag, out gen);
         }
         
-        private TreeNode FindTreeNode(int tag, out ItemContainerGenerator gen)
+        private TreeNode FindTreeNode(string path, out ItemContainerGenerator gen)
         {
-            return FindNodeByTag(DirTreeView.ItemContainerGenerator, tag, out gen);
+            return FindNodeByTag(DirTreeView.ItemContainerGenerator, path, out gen);
         }
 
-        private TreeNode FindNodeByTag(ItemContainerGenerator container, int tag, out ItemContainerGenerator generator)
+        private TreeNode FindNodeByTag(ItemContainerGenerator container, string path, out ItemContainerGenerator generator)
         {
             generator = null;
             foreach (TreeNode node in container.Items)
             {
-                if (node.Tag == tag)
+                if (node.Path == path)
                 {
                     generator = container;
                     return node;
@@ -181,7 +228,7 @@ namespace ExcelConverter
                     if (treeViewItem == null)
                         continue;
 
-                    var findNode = FindNodeByTag(treeViewItem.ItemContainerGenerator, tag, out generator);
+                    var findNode = FindNodeByTag(treeViewItem.ItemContainerGenerator, path, out generator);
                     if (findNode != null)
                     {
                         return findNode;
@@ -193,7 +240,7 @@ namespace ExcelConverter
         }
 
     }
-
+    
     public enum NodeType
     {
         Dir,
@@ -203,19 +250,37 @@ namespace ExcelConverter
     public class TreeNode
     {
         public string Name { get; set; }
-        public List<string> ChildFileName;
+        public List<string> ChildFileName { get; set; }
         public List<TreeNode> Child { get; set; }
         public bool IsExpanded { get; set; }
-        public int Tag { get; set; }
-        public NodeType Type;
-
-        public string Path;
-
+        //public int Tag { get; set; }
+        public NodeType Type { get; set; }
+        public string Path { get; set; }
         public bool IsFile => Type == NodeType.File;
 
         public override string ToString()
         {
             return Name;
         }
+
+        public override bool Equals(object? obj)
+        {
+            if (!(obj is TreeNode))
+                return false;
+            TreeNode other = (TreeNode) obj;
+            return Type == other.Type && Path == other.Path && Name == other.Name;
+        }
+
+        //public override int GetHashCode()
+        //{
+        //    int v1 = (int) Type;
+        //    var charArray = Path.ToCharArray();
+        //    int v2 = 0;
+        //    for (int i = 0; i < charArray.Length; i++)
+        //    {
+        //        v2 += charArray[i];
+        //    }
+        //    return  +  + Name;
+        //}
     }
 }
