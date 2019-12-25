@@ -5,24 +5,57 @@
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         xmlns:local="clr-namespace:ExcelConverter"
         mc:Ignorable="d"
-        Title="MainWindow" Height="530" Width="800"
+        Title="MainWindow" Height="589" Width="800"
         Loaded="OnWindowLoaded"
         Closed="OnWindowClosed">
     <Grid>
-        <Button Content="开始转表" HorizontalAlignment="Left" Height="20" Margin="65,33,0,0" VerticalAlignment="Top" Width="99" Click="Convert"/>
-        <Button Content="扫描文件夹" HorizontalAlignment="Left" Height="20" Margin="251,33,0,0" VerticalAlignment="Top" Width="99" Click="ScanDir"/>
-        <Label Content="收藏列表：" HorizontalAlignment="Left" Height="24" VerticalAlignment="Top" Width="176" Margin="10,68,0,0"/>
-        <ScrollViewer Margin="10,97,10,294" BorderThickness="1,1,1,1">
+        <Button Content="开始转表" HorizontalAlignment="Left" Height="20" Margin="66,18,0,0" VerticalAlignment="Top" Width="99" Click="Convert"/>
+        <Button Content="扫描文件夹" HorizontalAlignment="Left" Height="20" Margin="250,18,0,0" VerticalAlignment="Top" Width="99" Click="ScanDir"/>
+        <Label Content="待转列表：" HorizontalAlignment="Left" Height="24" VerticalAlignment="Top" Width="176" Margin="10,42,0,0"/>
+
+        <Border x:Name="CovertListBorder" BorderBrush="Black" Margin="8,65,8,406" BorderThickness="1,1,1,1">
+            <Border.Style>
+                <Style>
+                    <Setter Property="Border.Visibility" Value="Visible" />
+                    <Style.Triggers>
+                        <DataTrigger Binding="{Binding ElementName=theScrollViewer, Path=ComputedVerticalScrollBarVisibility}" Value="Collapsed">
+                            <Setter Property="Border.Visibility" Value="Collapsed" />
+                        </DataTrigger>
+                    </Style.Triggers>
+                </Style>
+            </Border.Style>
+        </Border>
+
+        <ScrollViewer x:Name="ConvertScrollViewer" Margin="10,66,10,407" BorderThickness="1,1,1,1">
+            <UniformGrid Columns="6" x:Name="ConvertGrid">
+                <Label Content="空" Height="28" Width="117"/>
+            </UniformGrid>
+        </ScrollViewer>
+        <Label Content="收藏列表：" HorizontalAlignment="Left" Height="24" VerticalAlignment="Top" Width="176" Margin="10,172,0,0"/>
+        <Border x:Name="FavCovertListBorder" BorderBrush="Black" Margin="9,198,9,264" BorderThickness="1,1,1,1">
+            <Border.Style>
+                <Style>
+                    <Setter Property="UIElement.Visibility" Value="Visible" />
+                    <Style.Triggers>
+                        <DataTrigger Binding="{Binding ComputedVerticalScrollBarVisibility, ElementName=theScrollViewer}" Value="Collapsed">
+                            <Setter Property="UIElement.Visibility" Value="Collapsed" />
+                        </DataTrigger>
+                    </Style.Triggers>
+                </Style>
+            </Border.Style>
+        </Border>
+        <ScrollViewer x:Name="FavScrollViewer" Margin="10,201,10,269" BorderThickness="1,1,1,1">
             <UniformGrid Columns="6" x:Name="FavGrid">
                 <Label Content="空" Height="28" Width="117"/>
             </UniformGrid>
         </ScrollViewer>
-        <TreeView Name="DirTreeView"  Margin="0,220,0,0" ItemsSource="{Binding DataSource}">
+        <TreeView Name="DirTreeView"  Margin="10,313,10,0" ItemsSource="{Binding DataSource}">
             <TreeView.ItemTemplate>
                 <HierarchicalDataTemplate ItemsSource="{Binding Child}" DataType="{x:Type local:TreeNode}">
-                    <Button Content="{Binding Name}" Width="Auto" Click="OnItemSelect" Background="White" BorderThickness="0,0,0,0" Tag="{Binding Path}">
+                    <Button Content="{Binding Name}" Width="Auto" Click="OnTreeItemSelect" Background="White" BorderThickness="0,0,0,0" Tag="{Binding Path}">
                         <Button.ContextMenu>
                             <ContextMenu>
+                                <MenuItem Header="添加转表" Name="MenuItemAddConvertNode" Click="TreeItemAddConvert" Tag="{Binding Path}"/>
                                 <MenuItem Header="添加收藏" Name="MenuItemAddNode" Click="MenuItemAddNodeClick" Tag="{Binding Path}"/>
                                 <MenuItem Header="删除收藏" Name="MenuItemDeleteNode" Click="MenuItemDeleteNodeClick" Tag="{Binding Path}"/>
                             </ContextMenu>

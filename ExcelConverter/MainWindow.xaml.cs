@@ -13,6 +13,7 @@ namespace ExcelConverter
     public partial class MainWindow : Window
     {
         public List<TreeNode> DataSource { get; set; }
+        private List<TreeNode> _convertList = new List<TreeNode>();
         private List<TreeNode> _favList;
 
         public MainWindow()
@@ -28,6 +29,28 @@ namespace ExcelConverter
 
         private void OnWindowClosed(object sender, EventArgs e)
         {
+        }
+
+        private void RefreshConvertList()
+        {
+            if (_favList.Count <= 0) return;
+
+            float width = 70;
+            float height = 30;
+            int colMax = 6;
+
+            ConvertGrid.Children.Clear();
+            for (int i = 0; i < _convertList.Count; i++)
+            {
+                int row = i / colMax;
+                int col = i % colMax;
+                Button bt = GenConvertItem(height, _convertList[i]);
+
+                Canvas.SetTop(bt, row * height + 5);
+                Canvas.SetLeft(bt, col * width + 5);
+
+                ConvertGrid.Children.Add(bt);
+            }
         }
 
         private void LoadFavList()
@@ -67,11 +90,46 @@ namespace ExcelConverter
             bt.ContextMenu = new ContextMenu();
             List<MenuItem> menuItems = new List<MenuItem>();
             bt.ContextMenu.ItemsSource = menuItems;
+
             var item = new MenuItem();
-            item.Header = "删除";
+            item.Header = "加入转表";
+            item.Click += AddFavItemToCovertClick;
+            item.Tag = treeNode.Path;
+            menuItems.Add(item);
+            
+            item = new MenuItem();
+            item.Header = "————————";
+            menuItems.Add(item);
+
+
+            item = new MenuItem();
+            item.Header = "删除收藏";
             item.Click += MenuItemDeleteNodeClick;
             item.Tag = treeNode.Path;
             menuItems.Add(item);
+
+            return bt;
+        }
+
+        private Button GenConvertItem(float height, TreeNode treeNode)
+        {
+            Button bt = new Button()
+            {
+                Width = double.NaN,
+                Height = height,
+                Content = treeNode.Name,
+            };
+
+            bt.ContextMenu = new ContextMenu();
+            List<MenuItem> menuItems = new List<MenuItem>();
+            bt.ContextMenu.ItemsSource = menuItems;
+
+            var item = new MenuItem();
+            item.Header = "从列表中删除";
+            item.Click += RemoveCovertItemClick;
+            item.Tag = treeNode.Path;
+            menuItems.Add(item);
+
             return bt;
         }
 
@@ -145,6 +203,31 @@ namespace ExcelConverter
             LoadFavList();
         }
 
+        private void AddFavItemToCovertClick(object sender, RoutedEventArgs e)
+        {
+            var tag = ((MenuItem)sender).Tag;
+            var node = _favList.Find(treeNode => (string) tag == treeNode.Path);
+            AddConvertNode(node);
+        }
+
+        private void AddConvertNode(TreeNode node)
+        {
+            if (node != null && !_convertList.Contains(node))
+            {
+                _convertList.Add(node);
+                RefreshConvertList();
+            }
+        }
+
+        private void RemoveCovertItemClick(object sender, RoutedEventArgs e)
+        {
+            var tag = ((MenuItem)sender).Tag;
+            var node = _convertList.Find(treeNode => (string)tag == treeNode.Path);
+            _convertList.Remove(node);
+
+            RefreshConvertList();
+        }
+
         private void MenuItemDeleteNodeClick(object sender, RoutedEventArgs e)
         {
             var tag = ((MenuItem)sender).Tag;
@@ -157,7 +240,15 @@ namespace ExcelConverter
             LoadFavList();
         }
 
-        private void OnItemSelect(object sender, RoutedEventArgs e)
+        private void TreeItemAddConvert(object sender, RoutedEventArgs e)
+        {
+            var tag = ((MenuItem)sender).Tag;
+            var node = FindTreeNode((string)tag);
+
+            AddConvertNode(node);
+        }
+
+        private void OnTreeItemSelect(object sender, RoutedEventArgs e)
         {
             Button btn = (Button)sender;
             ItemContainerGenerator gen;
