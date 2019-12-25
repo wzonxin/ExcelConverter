@@ -56,6 +56,7 @@
                         <Button.ContextMenu>
                             <ContextMenu>
                                 <MenuItem Header="添加转表" Name="MenuItemAddConvertNode" Click="TreeItemAddConvert" Tag="{Binding Path}"/>
+                                <MenuItem Header="打开文件夹" Name="MenuItemOpenFolderNode" Click="OpenTreeItemFolder" Tag="{Binding Path}"/>
                                 <MenuItem Header="添加收藏" Name="MenuItemAddNode" Click="MenuItemAddNodeClick" Tag="{Binding Path}"/>
                                 <MenuItem Header="删除收藏" Name="MenuItemDeleteNode" Click="MenuItemDeleteNodeClick" Tag="{Binding Path}"/>
                             </ContextMenu>

@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
+using System.Text;
 using System.Windows;
 using System.Windows.Controls;
 
@@ -23,6 +24,7 @@ namespace ExcelConverter
 
         private void OnWindowLoaded(object sender, RoutedEventArgs e)
         {
+            Encoding.RegisterProvider(CodePagesEncodingProvider.Instance);//注册Nuget包System.Text.Encoding.CodePages中的编码到.NET Core
             LoadExcelTree();
             LoadFavList();
         }
@@ -137,7 +139,7 @@ namespace ExcelConverter
         {
             string runningPath = AppDomain.CurrentDomain.BaseDirectory;
             string xlsPath = runningPath + "xls\\";
-            xlsPath = "C:\\Work\\data\\xls\\";
+            xlsPath = Utils.WorkingPath + "\\xls\\";
 
             TreeNode rootNode = new TreeNode();
             Search(rootNode, xlsPath, NodeType.Dir);
@@ -148,7 +150,7 @@ namespace ExcelConverter
 
         private void Convert(object sender, RoutedEventArgs e)
         {
-
+            Utils.ConvertExcel(_convertList);
         }
 
         private void ScanDir(object sender, RoutedEventArgs e)
@@ -159,8 +161,7 @@ namespace ExcelConverter
         private void Search(TreeNode root, string path, NodeType nodeType)
         {
             root.Path = path;
-            var lastIndexOf = path.LastIndexOf("\\", StringComparison.Ordinal) + 1;
-            root.Name = path.Substring(lastIndexOf, path.Length - lastIndexOf);
+            root.Name = Utils.GetFileName(path);
 
             if (nodeType == NodeType.File)
             {
@@ -246,6 +247,18 @@ namespace ExcelConverter
             var node = FindTreeNode((string)tag);
 
             AddConvertNode(node);
+        }
+
+        private void OpenTreeItemFolder(object sender, RoutedEventArgs e)
+        {
+            var tag = ((MenuItem)sender).Tag;
+            var node = FindTreeNode((string)tag);
+
+            if (node != null)
+            {
+                var folderPath = node.Path.Remove(node.Path.LastIndexOf("\\"));
+                Process.Start(new ProcessStartInfo(folderPath) { UseShellExecute = true });
+            }
         }
 
         private void OnTreeItemSelect(object sender, RoutedEventArgs e)
@@ -361,17 +374,5 @@ namespace ExcelConverter
             TreeNode other = (TreeNode) obj;
             return Type == other.Type && Path == other.Path && Name == other.Name;
         }
-
-        //public override int GetHashCode()
-        //{
-        //    int v1 = (int) Type;
-        //    var charArray = Path.ToCharArray();
-        //    int v2 = 0;
-        //    for (int i = 0; i < charArray.Length; i++)
-        //    {
-        //        v2 += charArray[i];
-        //    }
-        //    return  +  + Name;
-        //}
     }
 }
