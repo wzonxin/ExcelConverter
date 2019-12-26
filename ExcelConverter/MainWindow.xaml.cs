@@ -18,6 +18,8 @@ namespace ExcelConverter
         private List<TreeNode> _favList;
         private TreeNode _rootNode;
 
+        private List<TimerTask> _taskList = new List<TimerTask>();
+
         public MainWindow()
         {
             InitializeComponent();
@@ -28,6 +30,24 @@ namespace ExcelConverter
             Encoding.RegisterProvider(CodePagesEncodingProvider.Instance);//注册Nuget包System.Text.Encoding.CodePages中的编码到.NET Core
             LoadExcelTree();
             LoadFavList();
+
+            System.Windows.Threading.DispatcherTimer timer = new System.Windows.Threading.DispatcherTimer();
+            timer.Interval = TimeSpan.FromMilliseconds(100);
+            // Set the callback to just show the time ticking away
+            // NOTE: We are using a control so this has to run on 
+            // the UI thread
+            timer.Tick += new EventHandler(TimerTick);
+            timer.Start();
+        }
+
+        private void TimerTick(object s, EventArgs a)
+        {
+            if(_taskList.Count > 0)
+            {
+                var task = _taskList[0];
+                task.Action(task.Data);
+                _taskList.RemoveAt(0);
+            }
         }
 
         private void OnWindowClosed(object sender, EventArgs e)
@@ -87,7 +107,7 @@ namespace ExcelConverter
                 Height = height,
                 Content = treeNode.SingleFileName,
                 Tag = treeNode.Path,
-                ToolTip = treeNode.BtnToolTip,
+                ToolTip = treeNode.GetBtnToolTip(),
             };
             bt.Click += FavItemClick;
 
@@ -128,7 +148,7 @@ namespace ExcelConverter
                 Width = double.NaN,
                 Height = height,
                 Content = treeNode.SingleFileName,
-                ToolTip = treeNode.BtnToolTip,
+                ToolTip = treeNode.GetBtnToolTip(),
             };
 
             bt.ContextMenu = new ContextMenu();
@@ -194,9 +214,38 @@ namespace ExcelConverter
 
         private void ScanDir(object sender, RoutedEventArgs e)
         {
-            TreeNode rootNode = Utils.GenFileTree();
-            _rootNode = rootNode;
-            SetTreeSorce(rootNode);
+            //TreeNode rootNode = Utils.GenFileTree(ScanProgressBar, UpdateProgress);
+            //_rootNode = rootNode;
+            //SetTreeSorce(rootNode);
+            Utils.GenFileTree(PushUpdateProgress, PushFinishSearch);
+        }
+
+        private void PushUpdateProgress(object obj)
+        {
+            TimerTask task = new TimerTask();
+            task.Data = obj;
+            task.Action = UpdateProgress;
+            _taskList.Add(task);
+        }
+
+        private void UpdateProgress(object value)
+        {
+            float val = (float)value;
+            ScanProgressBar.Value = val * 100;
+        }
+
+        private void PushFinishSearch(object obj)
+        {
+            TimerTask task = new TimerTask();
+            task.Data = obj;
+            task.Action = OnFinishedSearch;
+            _taskList.Add(task);
+        }
+
+        private void OnFinishedSearch(object value)
+        {
+            TreeNode node = (TreeNode)value;
+            SetTreeSorce(node);
         }
 
         private void MenuItemAddNodeClick(object sender, RoutedEventArgs e)
@@ -379,22 +428,40 @@ namespace ExcelConverter
         public string Path { get; set; }
         public bool IsFile => Type == NodeType.File;
 
-        public string SingleFileName { get { return Utils.GetFileName(Path); } }
-        public string BtnToolTip { 
+        [NonSerialized]
+        private System.Windows.Media.Brush _color = System.Windows.Media.Brushes.White;
+        //public System.Windows.Media.Brush Color { get { return _color; } set{ _color = value; } }
+        [System.Text.Json.Serialization.JsonIgnore]
+        public System.Windows.Media.Brush Color
+        {
             get
             {
-                if(Name.Length > 60)
+                if (IsMatch)
                 {
-                    var spilt = Name.Replace(SingleFileName, "").Split(",");
-                    string s = "";
-                    for (int i = 0; i < spilt.Length; i++)
-                    {
-                        s += spilt[i] + "\n";
-                    }
-                    return s;
+                    return System.Windows.Media.Brushes.LightGreen;
                 }
-                return Name;
-            } }
+                return System.Windows.Media.Brushes.White;
+            }
+        }
+
+        public bool IsMatch { get; set; }
+
+        public string SingleFileName { get { return Utils.GetFileName(Path); } }
+
+        public string GetBtnToolTip()
+        {
+            if (Name.Length > 60)
+            {
+                var spilt = Name.Replace(SingleFileName, "").Split(",");
+                string s = "";
+                for (int i = 0; i < spilt.Length; i++)
+                {
+                    s += spilt[i] + "\n";
+                }
+                return s;
+            }
+            return Name;
+        }
 
         public override string ToString()
         {

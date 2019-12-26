@@ -13,18 +13,29 @@ namespace ExcelConverter
         private const string favFileName = "fav.json";
         private const string treeFileName = "tree.json";
 
-        public static TreeNode GenFileTree()
+        private static Action<object> _update;
+        private static Action<object> _finished;
+        public static void GenFileTree(Action<object> updateTask, Action<object> finishTask)
         {
             string runningPath = AppDomain.CurrentDomain.BaseDirectory;
             string xlsPath = runningPath + "xls\\";
             xlsPath = Utils.WorkingPath + "xls\\";
 
+            _update = updateTask;
+            _finished = finishTask;
+
+            System.Threading.ThreadPool.QueueUserWorkItem(new System.Threading.WaitCallback(DoInBackgroundThread));
+        }
+
+        private static void DoInBackgroundThread(object state)
+        {
+            var xlsPath = Utils.WorkingPath + "xls\\";
+
             TreeNode rootNode = new TreeNode();
             Search(rootNode, xlsPath, NodeType.Dir);
-
             SaveFileTree(rootNode);
+            _finished?.Invoke(rootNode);
             GC.Collect();
-            return rootNode;
         }
 
         private static void Search(TreeNode root, string path, NodeType nodeType)
@@ -49,6 +60,9 @@ namespace ExcelConverter
                 TreeNode node = new TreeNode();
                 Search(node, childDirPath[i], NodeType.Dir);
                 childNodes.Add(node);
+
+                //_updateScanAction?.Invoke((i + 1f) / childDirPath.Length);
+                _update?.Invoke((i + 1f) / childDirPath.Length);
             }
 
             for (int i = 0; i < files.Length; i++)
@@ -78,7 +92,11 @@ namespace ExcelConverter
                 return false;
 
             if (node.Name.Contains(filterStr, StringComparison.OrdinalIgnoreCase))
+            {
+                node.IsMatch = true;
+                FindMatchFolderMatchFile(node, filterStr);
                 return true;
+            }
 
             bool bFind = false;
             for (int i = 0; i < childs.Count; i++)
@@ -93,6 +111,7 @@ namespace ExcelConverter
                     }
                     else
                     {
+                        child.IsMatch = true;
                         bFind = true;
                     }
                 }
@@ -111,6 +130,23 @@ namespace ExcelConverter
                 }
             }
             return bFind;
+        }
+
+        //
+        private static void FindMatchFolderMatchFile(TreeNode matchNode, string filterStr)
+        {
+            if (!matchNode.IsFile && matchNode.Child != null)
+            {
+                for (int i = 0; i < matchNode.Child.Count; i++)
+                {
+                    TreeNode childNode = matchNode.Child[i];
+                    if (childNode.Name.Contains(filterStr, StringComparison.OrdinalIgnoreCase))
+                    {
+                        childNode.IsMatch = true;
+                    }
+                    FindMatchFolderMatchFile(childNode, filterStr);
+                }
+            }
         }
 
         private static TreeNode CloneTree(TreeNode tree)
@@ -146,7 +182,11 @@ namespace ExcelConverter
 
         private static void SaveFileTree(TreeNode treeNode)
         {
-            var jsonStr = JsonSerializer.Serialize(treeNode);
+            var options = new JsonSerializerOptions
+            {
+                WriteIndented = true
+            };
+            var jsonStr = JsonSerializer.Serialize(treeNode, options);
             FileStream fileStream = File.Create(WorkingPath + treeFileName);
             fileStream.Write(Encoding.UTF8.GetBytes(jsonStr));
             fileStream.Flush(true);
@@ -155,7 +195,11 @@ namespace ExcelConverter
 
         public static void SaveFav(List<TreeNode> pathList)
         {
-            var jsonStr = JsonSerializer.Serialize(pathList);
+            var options = new JsonSerializerOptions
+            {
+                WriteIndented = true
+            };
+            var jsonStr = JsonSerializer.Serialize(pathList, options);
             FileStream fileStream = File.Create(WorkingPath + favFileName);
             fileStream.Write(Encoding.UTF8.GetBytes(jsonStr));
             fileStream.Flush(true);
@@ -169,7 +213,11 @@ namespace ExcelConverter
             try
             {
                 var str = File.ReadAllText(filePath);
-                root = JsonSerializer.Deserialize<TreeNode>(str);
+                var options = new JsonSerializerOptions
+                {
+                    WriteIndented = true
+                };
+                root = JsonSerializer.Deserialize<TreeNode>(str, options);
             }
             catch (Exception e)
             {
@@ -186,7 +234,11 @@ namespace ExcelConverter
             try
             {
                 var str = File.ReadAllText(filePath);
-                list = JsonSerializer.Deserialize<List<TreeNode>>(str);
+                var options = new JsonSerializerOptions
+                {
+                    WriteIndented = true
+                };
+                list = JsonSerializer.Deserialize<List<TreeNode>>(str, options);
             }
             catch (Exception e)
             {
