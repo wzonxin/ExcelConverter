@@ -10,22 +10,98 @@ namespace ExcelConverter
 {
     public class Utils
     {
-        private const string fileName = "fav.json";
-        public static void SaveFav(List<TreeNode> pathList)
+        private const string favFileName = "fav.json";
+        private const string treeFileName = "tree.json";
+
+        public static TreeNode GenFileTree()
         {
             string runningPath = AppDomain.CurrentDomain.BaseDirectory;
+            string xlsPath = runningPath + "xls\\";
+            xlsPath = Utils.WorkingPath + "xls\\";
 
-            var jsonStr = JsonSerializer.Serialize(pathList);
-            FileStream fileStream = File.Create(runningPath + fileName);
+            TreeNode rootNode = new TreeNode();
+            Search(rootNode, xlsPath, NodeType.Dir);
+
+            SaveFileTree(rootNode);
+            GC.Collect();
+            return rootNode;
+        }
+
+        private static void Search(TreeNode root, string path, NodeType nodeType)
+        {
+            root.Path = path;
+            root.Name = Utils.GetTreeItemName(path, nodeType);
+
+            if (nodeType == NodeType.File)
+            {
+                root.Type = NodeType.File;
+                return;
+            }
+
+            root.IsExpanded = false;
+            root.Type = NodeType.Dir;
+            var files = Directory.GetFiles(path, "*.xlsx", SearchOption.TopDirectoryOnly);
+            root.ChildFileName = new List<string>(files);
+            var childDirPath = Directory.GetDirectories(path, "*", SearchOption.TopDirectoryOnly);
+            List<TreeNode> childNodes = new List<TreeNode>();
+            for (int i = 0; i < childDirPath.Length; i++)
+            {
+                TreeNode node = new TreeNode();
+                Search(node, childDirPath[i], NodeType.Dir);
+                childNodes.Add(node);
+            }
+
+            for (int i = 0; i < files.Length; i++)
+            {
+                TreeNode node = new TreeNode();
+                if (files[i].Contains("~$"))
+                    continue;
+
+                Search(node, files[i], NodeType.File);
+                childNodes.Add(node);
+            }
+
+            root.Child = childNodes;
+        }
+
+        private static void SaveFileTree(TreeNode treeNode)
+        {
+            var jsonStr = JsonSerializer.Serialize(treeNode);
+            FileStream fileStream = File.Create(WorkingPath + treeFileName);
             fileStream.Write(Encoding.UTF8.GetBytes(jsonStr));
             fileStream.Flush(true);
             fileStream.Close();
         }
 
+        public static void SaveFav(List<TreeNode> pathList)
+        {
+            var jsonStr = JsonSerializer.Serialize(pathList);
+            FileStream fileStream = File.Create(WorkingPath + favFileName);
+            fileStream.Write(Encoding.UTF8.GetBytes(jsonStr));
+            fileStream.Flush(true);
+            fileStream.Close();
+        }
+
+        public static TreeNode ReadTree()
+        {
+            string filePath = WorkingPath + treeFileName;
+            TreeNode root = null;
+            try
+            {
+                var str = File.ReadAllText(filePath);
+                root = JsonSerializer.Deserialize<TreeNode>(str);
+            }
+            catch (Exception e)
+            {
+                if (root == null)
+                    root = new TreeNode();
+            }
+            return root;
+        }
+        
         public static List<TreeNode> ReadFav()
         {
-            string runningPath = AppDomain.CurrentDomain.BaseDirectory;
-            string filePath = runningPath + fileName;
+            string filePath = WorkingPath + favFileName;
             List<TreeNode> list = null;
             try
             {
@@ -182,11 +258,40 @@ cd \Work\data\\
 ";
         }
 
+        public static string GetTreeItemName(string fullPath, NodeType nodeType)
+        {
+            var fileName = GetFileName(fullPath);
+            if(nodeType == NodeType.File)
+            {
+                string subNames = GetSubSheetNames(fullPath);
+                fileName += subNames;
+            }
+            return fileName;
+        }
+
         public static string GetFileName(string fullPath)
         {
             var lastIndexOf = fullPath.LastIndexOf("\\", StringComparison.Ordinal) + 1;
             var name = fullPath.Substring(lastIndexOf, fullPath.Length - lastIndexOf);
             return name;
+        }
+
+        public static string GetSubSheetNames(string xlsPath)
+        {
+            FileInfo inputStream = new FileInfo(xlsPath);
+            IWorkbook workbook = new XSSFWorkbook(inputStream);
+            int sheetCnt = workbook.NumberOfSheets;
+            string sheetNames = "(";
+            for (int j = 0; j < sheetCnt; j++)
+            {
+                ISheet sheet = workbook.GetSheetAt(j);
+                var sheetName = sheet.SheetName;
+                sheetNames += sheetName;
+                if (j < sheetCnt - 1)
+                    sheetNames += ", ";
+            }
+            sheetNames += ")";
+            return sheetNames;
         }
     }
 }

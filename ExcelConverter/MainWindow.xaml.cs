@@ -35,7 +35,7 @@ namespace ExcelConverter
 
         private void RefreshConvertList()
         {
-            if (_favList.Count <= 0) return;
+            if (_convertList.Count <= 0) return;
 
             float width = 70;
             float height = 30;
@@ -98,11 +98,11 @@ namespace ExcelConverter
             item.Click += AddFavItemToCovertClick;
             item.Tag = treeNode.Path;
             menuItems.Add(item);
-            
-            item = new MenuItem();
-            item.Header = "————————";
-            menuItems.Add(item);
 
+            item = new MenuItem();
+            item.IsEnabled = false;
+            item.Header = "————";
+            menuItems.Add(item);
 
             item = new MenuItem();
             item.Header = "删除收藏";
@@ -137,13 +137,7 @@ namespace ExcelConverter
 
         private void LoadExcelTree()
         {
-            string runningPath = AppDomain.CurrentDomain.BaseDirectory;
-            string xlsPath = runningPath + "xls\\";
-            xlsPath = Utils.WorkingPath + "\\xls\\";
-
-            TreeNode rootNode = new TreeNode();
-            Search(rootNode, xlsPath, NodeType.Dir);
-
+            TreeNode rootNode = Utils.ReadTree();
             DataSource = rootNode.Child;
             DirTreeView.ItemsSource = DataSource;
         }
@@ -155,41 +149,9 @@ namespace ExcelConverter
 
         private void ScanDir(object sender, RoutedEventArgs e)
         {
-            LoadExcelTree();
-        }
-
-        private void Search(TreeNode root, string path, NodeType nodeType)
-        {
-            root.Path = path;
-            root.Name = Utils.GetFileName(path);
-
-            if (nodeType == NodeType.File)
-            {
-                root.Type = NodeType.File;
-                return;
-            }
-
-            root.IsExpanded = false;
-            root.Type = NodeType.Dir;
-            var files = Directory.GetFiles(path, "*.xlsx", SearchOption.TopDirectoryOnly);
-            root.ChildFileName = new List<string>(files);
-            var childDirPath = Directory.GetDirectories(path, "*", SearchOption.TopDirectoryOnly);
-            List<TreeNode> childNodes = new List<TreeNode>();
-            for (int i = 0; i < childDirPath.Length; i++)
-            {
-                TreeNode node = new TreeNode();
-                Search(node, childDirPath[i], NodeType.Dir);
-                childNodes.Add(node);
-            }
-
-            for (int i = 0; i < files.Length; i++)
-            {
-                TreeNode node = new TreeNode();
-                Search(node, files[i], NodeType.File);
-                childNodes.Add(node);
-            }
-
-            root.Child = childNodes;
+            TreeNode rootNode = Utils.GenFileTree();
+            DataSource = rootNode.Child;
+            DirTreeView.ItemsSource = DataSource;
         }
 
         private void MenuItemAddNodeClick(object sender, RoutedEventArgs e)
