@@ -64,6 +64,86 @@ namespace ExcelConverter
             root.Child = childNodes;
         }
 
+        public static void FilterTree(TreeNode node, string filterStr, ref TreeNode filterNode)
+        {
+            filterNode = CloneTree(node);
+            FilterTree(ref filterNode, filterStr);
+            GC.Collect();
+        }
+
+        private static bool FilterTree(ref TreeNode node, string filterStr)
+        {
+            var childs = node.Child;
+            if (childs == null)
+                return false;
+
+            if (node.Name.Contains(filterStr, StringComparison.OrdinalIgnoreCase))
+                return true;
+
+            bool bFind = false;
+            for (int i = 0; i < childs.Count; i++)
+            {
+                TreeNode child = childs[i];
+                if (child.IsFile)
+                {
+                    if (!childs[i].Name.Contains(filterStr, StringComparison.OrdinalIgnoreCase))
+                    {
+                        childs.RemoveAt(i);
+                        i--;
+                    }
+                    else
+                    {
+                        bFind = true;
+                    }
+                }
+                else
+                {
+                    bool res = FilterTree(ref child, filterStr);
+                    if (!res)
+                    {
+                        childs.RemoveAt(i);
+                        i--;
+                    }
+                    else
+                    {
+                        bFind = true;
+                    }
+                }
+            }
+            return bFind;
+        }
+
+        private static TreeNode CloneTree(TreeNode tree)
+        {
+            TreeNode cloneNode = CloneNode(tree);
+            if (tree.Child != null)
+            {
+                for (int i = 0; i < tree.Child.Count; i++)
+                {
+                    cloneNode.Child[i] = CloneTree(tree.Child[i]);
+                }
+            }
+            return cloneNode;
+        }
+
+        private static TreeNode CloneNode(TreeNode srcNode)
+        {
+            TreeNode treeNode = new TreeNode();
+            treeNode.Name = srcNode.Name;
+            treeNode.Path = srcNode.Path;
+            treeNode.IsExpanded = srcNode.IsExpanded;
+            treeNode.Type = srcNode.Type;
+            if (srcNode.ChildFileName != null)
+            {
+                treeNode.ChildFileName = new List<string>(srcNode.ChildFileName);
+            }
+            if (srcNode.Child != null)
+            {
+                treeNode.Child = new List<TreeNode>(srcNode.Child);
+            }
+            return treeNode;
+        }
+
         private static void SaveFileTree(TreeNode treeNode)
         {
             var jsonStr = JsonSerializer.Serialize(treeNode);

@@ -16,6 +16,7 @@ namespace ExcelConverter
         public List<TreeNode> DataSource { get; set; }
         private List<TreeNode> _convertList = new List<TreeNode>();
         private List<TreeNode> _favList;
+        private TreeNode _rootNode;
 
         public MainWindow()
         {
@@ -84,8 +85,9 @@ namespace ExcelConverter
             {
                 Width = double.NaN,
                 Height = height,
-                Content = treeNode.Name,
-                Tag = treeNode.Path
+                Content = treeNode.SingleFileName,
+                Tag = treeNode.Path,
+                ToolTip = treeNode.BtnToolTip,
             };
             bt.Click += FavItemClick;
 
@@ -96,6 +98,12 @@ namespace ExcelConverter
             var item = new MenuItem();
             item.Header = "加入转表";
             item.Click += AddFavItemToCovertClick;
+            item.Tag = treeNode.Path;
+            menuItems.Add(item);
+
+            item = new MenuItem();
+            item.Header = "打开文件夹";
+            item.Click += OpenFavItemFolder;
             item.Tag = treeNode.Path;
             menuItems.Add(item);
 
@@ -119,7 +127,8 @@ namespace ExcelConverter
             {
                 Width = double.NaN,
                 Height = height,
-                Content = treeNode.Name,
+                Content = treeNode.SingleFileName,
+                ToolTip = treeNode.BtnToolTip,
             };
 
             bt.ContextMenu = new ContextMenu();
@@ -132,14 +141,16 @@ namespace ExcelConverter
             item.Tag = treeNode.Path;
             menuItems.Add(item);
 
+            bt.Background = System.Windows.Media.Brushes.White;
+
             return bt;
         }
 
         private void LoadExcelTree()
         {
             TreeNode rootNode = Utils.ReadTree();
-            DataSource = rootNode.Child;
-            DirTreeView.ItemsSource = DataSource;
+            _rootNode = rootNode;
+            SetTreeSorce(rootNode);
         }
 
         private void Convert(object sender, RoutedEventArgs e)
@@ -147,11 +158,45 @@ namespace ExcelConverter
             Utils.ConvertExcel(_convertList);
         }
 
+        private void SearchTextChange(object sender, TextChangedEventArgs e)
+        {
+            string inputText = SearchBox.Text;
+            if (!string.IsNullOrEmpty(inputText))
+            {
+                TreeNode newTreeNode = null;
+                Utils.FilterTree(_rootNode, inputText, ref newTreeNode);
+                SetTreeSorce(newTreeNode);
+                ExpandTree();
+            }
+            else
+            {
+                SetTreeSorce(_rootNode);
+            }
+        }
+
+        private void ExpandTree()
+        {
+            foreach (var item in this.DirTreeView.Items)
+            {
+                DependencyObject dependencyObject = this.DirTreeView.ItemContainerGenerator.ContainerFromItem(item);
+                if (dependencyObject != null)
+                {
+                    ((TreeViewItem)dependencyObject).ExpandSubtree();
+                }
+            }
+        }
+
+        private void SetTreeSorce(TreeNode node)
+        {
+            DataSource = node.Child;
+            DirTreeView.ItemsSource = DataSource;
+        }
+
         private void ScanDir(object sender, RoutedEventArgs e)
         {
             TreeNode rootNode = Utils.GenFileTree();
-            DataSource = rootNode.Child;
-            DirTreeView.ItemsSource = DataSource;
+            _rootNode = rootNode;
+            SetTreeSorce(rootNode);
         }
 
         private void MenuItemAddNodeClick(object sender, RoutedEventArgs e)
@@ -211,11 +256,22 @@ namespace ExcelConverter
             AddConvertNode(node);
         }
 
+        private void OpenFavItemFolder(object sender, RoutedEventArgs e)
+        {
+            var tag = ((MenuItem)sender).Tag;
+            var node = _favList.Find(treeNode => (string)tag == treeNode.Path);
+            OpenFolder(node);
+        }
+        
         private void OpenTreeItemFolder(object sender, RoutedEventArgs e)
         {
             var tag = ((MenuItem)sender).Tag;
             var node = FindTreeNode((string)tag);
+            OpenFolder(node);
+        }
 
+        private static void OpenFolder(TreeNode node)
+        {
             if (node != null)
             {
                 var folderPath = node.Path.Remove(node.Path.LastIndexOf("\\"));
@@ -304,9 +360,8 @@ namespace ExcelConverter
 
             return null;
         }
-
     }
-    
+
     public enum NodeType
     {
         Dir,
@@ -323,6 +378,23 @@ namespace ExcelConverter
         public NodeType Type { get; set; }
         public string Path { get; set; }
         public bool IsFile => Type == NodeType.File;
+
+        public string SingleFileName { get { return Utils.GetFileName(Path); } }
+        public string BtnToolTip { 
+            get
+            {
+                if(Name.Length > 60)
+                {
+                    var spilt = Name.Replace(SingleFileName, "").Split(",");
+                    string s = "";
+                    for (int i = 0; i < spilt.Length; i++)
+                    {
+                        s += spilt[i] + "\n";
+                    }
+                    return s;
+                }
+                return Name;
+            } }
 
         public override string ToString()
         {
