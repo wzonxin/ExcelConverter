@@ -14,11 +14,13 @@ namespace ExcelConverter
         public string Name { get; set; }
         public List<string> ChildFileName { get; set; }
         public List<TreeNode> Child { get; set; }
-        public bool IsExpanded { get; set; }
         public NodeType Type { get; set; }
         public string Path { get; set; }
-        public bool IsMatch { get; set; }
 
+        [JsonIgnore]
+        public bool IsExpanded { get; set; }
+        [JsonIgnore]
+        public bool IsMatch { get; set; }
         [JsonIgnore]
         public bool IsFile => Type == NodeType.File;
         [JsonIgnore]

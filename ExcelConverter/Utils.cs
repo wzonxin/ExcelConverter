@@ -99,6 +99,7 @@ namespace ExcelConverter
 
         private static bool FilterTree(ref TreeNode node, string filterStr)
         {
+            node.IsExpanded = true;
             var childs = node.Child;
             if (childs == null)
                 return false;
@@ -244,9 +245,6 @@ namespace ExcelConverter
 
         public static void ConvertExcel(List<TreeNode> convertList)
         {
-            if (convertList.Count <= 0)
-                return;
-
             List<string> pathList = new List<string>();
             ConvertToPath(convertList, ref pathList);
             CopyXlsToTmpDir(ref pathList); 

@@ -66,9 +66,15 @@ namespace ExcelConverter
         public void AutoOpen()
         {
             if (IsFile)
-                OpenFolderFile();
+            {
+                if (System.IO.File.Exists(Path))
+                    OpenFolderFile();
+            }
             else
-                OpenFolderDir();
+            {
+                if(System.IO.Directory.Exists(Path))
+                    OpenFolderDir();
+            }
         }
 
         public void OpenFolderDir()
@@ -83,7 +89,8 @@ namespace ExcelConverter
 
         public void OpenFile()
         {
-            Process.Start(new ProcessStartInfo(Path) { UseShellExecute = true });
+            if (System.IO.File.Exists(Path))
+                Process.Start(new ProcessStartInfo(Path) { UseShellExecute = true });
         }
     }
 }

@@ -5,7 +5,7 @@
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         xmlns:local="clr-namespace:ExcelConverter"
         mc:Ignorable="d"
-        Title="MainWindow" Height="589" Width="800"
+        Title="转表" Height="589" Width="800"
         Loaded="OnWindowLoaded"
         Closed="OnWindowClosed">
     <Grid>
@@ -17,12 +17,12 @@
                  Text="" TextWrapping="Wrap" Width="202" Height="28" TextChanged="SearchTextChange" VerticalContentAlignment="Center" ToolTip="Search Excel"/>
         <Label x:Name="ConvertLabel" Content="待转列表：" HorizontalAlignment="Left" Height="24" VerticalAlignment="Top" Width="176" Margin="10,42,0,0"/>
 
-        <Border x:Name="CovertListBorder" BorderBrush="Black" Margin="8,65,8,406" BorderThickness="1,1,1,1">
+        <Border x:Name="CovertListBorder" BorderBrush="Black" Height="108" VerticalAlignment="Top" Margin="10,65,9,0" BorderThickness="1,1,1,1" >
             <Border.Style>
                 <Style>
                     <Setter Property="Border.Visibility" Value="Visible" />
                     <Style.Triggers>
-                        <DataTrigger Binding="{Binding ElementName=theScrollViewer, Path=ComputedVerticalScrollBarVisibility}" Value="Collapsed">
+                        <DataTrigger Binding="{Binding ElementName=ConvertScrollViewer, Path=ComputedVerticalScrollBarVisibility}" Value="Collapsed">
                             <Setter Property="Border.Visibility" Value="Collapsed" />
                         </DataTrigger>
                     </Style.Triggers>
@@ -30,25 +30,25 @@
             </Border.Style>
         </Border>
 
-        <ScrollViewer x:Name="ConvertScrollViewer" Margin="10,66,10,407" BorderThickness="1,1,1,1">
+        <ScrollViewer x:Name="ConvertScrollViewer"  Height="106" VerticalAlignment="Top" Margin="10,66,10,0" BorderThickness="1,1,1,1">
             <UniformGrid Columns="6" x:Name="ConvertGrid">
                 <Label Content="空" Height="28" Width="117"/>
             </UniformGrid>
         </ScrollViewer>
         <Label x:Name="FavLabel" Content="收藏列表：" HorizontalAlignment="Left" Height="24" VerticalAlignment="Top" Width="176" Margin="10,172,0,0"/>
-        <Border x:Name="FavCovertListBorder" BorderBrush="Black" Margin="9,198,9,264" BorderThickness="1,1,1,1">
+        <Border x:Name="FavCovertListBorder" BorderBrush="Black" Height="108" VerticalAlignment="Top" Margin="10,199,9,0" BorderThickness="1,1,1,1">
             <Border.Style>
                 <Style>
                     <Setter Property="UIElement.Visibility" Value="Visible" />
                     <Style.Triggers>
-                        <DataTrigger Binding="{Binding ComputedVerticalScrollBarVisibility, ElementName=theScrollViewer}" Value="Collapsed">
+                        <DataTrigger Binding="{Binding ComputedVerticalScrollBarVisibility, ElementName=FavScrollViewer}" Value="Collapsed">
                             <Setter Property="UIElement.Visibility" Value="Collapsed" />
                         </DataTrigger>
                     </Style.Triggers>
                 </Style>
             </Border.Style>
         </Border>
-        <ScrollViewer x:Name="FavScrollViewer" Margin="10,201,10,269" BorderThickness="1,1,1,1">
+        <ScrollViewer x:Name="FavScrollViewer" Height="106" VerticalAlignment="Top" Margin="10,200,10,0"  BorderThickness="1,1,1,1">
             <UniformGrid Columns="6" x:Name="FavGrid">
                 <Label Content="空" Height="28" Width="117"/>
             </UniformGrid>

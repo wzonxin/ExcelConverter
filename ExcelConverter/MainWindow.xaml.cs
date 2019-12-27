@@ -1,7 +1,5 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Diagnostics;
-using System.IO;
 using System.Text;
 using System.Windows;
 using System.Windows.Controls;
@@ -181,6 +179,11 @@ namespace ExcelConverter
 
         private void Convert(object sender, RoutedEventArgs e)
         {
+            if (_convertList.Count <= 0)
+            {
+                return;
+            }
+
             Utils.ConvertExcel(_convertList);
         }
 
@@ -192,23 +195,10 @@ namespace ExcelConverter
                 TreeNode newTreeNode = null;
                 Utils.FilterTree(_rootNode, inputText, ref newTreeNode);
                 SetTreeSorce(newTreeNode);
-                ExpandTree();
             }
             else
             {
                 SetTreeSorce(_rootNode);
-            }
-        }
-
-        private void ExpandTree()
-        {
-            foreach (var item in this.DirTreeView.Items)
-            {
-                DependencyObject dependencyObject = this.DirTreeView.ItemContainerGenerator.ContainerFromItem(item);
-                if (dependencyObject != null)
-                {
-                    ((TreeViewItem)dependencyObject).ExpandSubtree();
-                }
             }
         }
 
@@ -235,6 +225,7 @@ namespace ExcelConverter
 
         private void OnFinishedSearch(TreeNode node)
         {
+            _rootNode = node;
             SetTreeSorce(node);
             ScanLabel.Content = "扫描完成";
         }

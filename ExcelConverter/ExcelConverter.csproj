@@ -7,11 +7,18 @@
 
     <!--添加如下节点-->
     <RuntimeIdentifiers>win-x86;win-x64</RuntimeIdentifiers>
+    <PackageIcon></PackageIcon>
+    <PackageIconUrl />
+    <ApplicationIcon>favicon-20191227083646338.ico</ApplicationIcon>
+    <Win32Resource />
+    <NoWin32Manifest>true</NoWin32Manifest>
   </PropertyGroup>
 
   <ItemGroup>
     <PackageReference Include="DotNetCore.NPOI" Version="1.2.2" />
     <PackageReference Include="System.Text.Encoding.CodePages" Version="4.7.0" />
   </ItemGroup>
-
+  <ItemGroup>
+    <TrimmerRootAssembly Include="System.Text.Json" />
+  </ItemGroup>
 </Project>
