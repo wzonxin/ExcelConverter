@@ -17,8 +17,8 @@ namespace ExcelConverter
         private List<TreeNode> _convertList = new List<TreeNode>();
         private List<TreeNode> _favList;
         private TreeNode _rootNode;
-
         private List<TimerTask> _taskList = new List<TimerTask>();
+        private System.Windows.Threading.DispatcherTimer _timer;
 
         public MainWindow()
         {
@@ -27,17 +27,18 @@ namespace ExcelConverter
 
         private void OnWindowLoaded(object sender, RoutedEventArgs e)
         {
+            Utils.InitWorkingPath();
             Encoding.RegisterProvider(CodePagesEncodingProvider.Instance);//注册Nuget包System.Text.Encoding.CodePages中的编码到.NET Core
             LoadExcelTree();
             LoadFavList();
 
-            System.Windows.Threading.DispatcherTimer timer = new System.Windows.Threading.DispatcherTimer();
-            timer.Interval = TimeSpan.FromMilliseconds(100);
+            _timer = new System.Windows.Threading.DispatcherTimer();
+            _timer.Interval = TimeSpan.FromMilliseconds(100);
             // Set the callback to just show the time ticking away
             // NOTE: We are using a control so this has to run on 
             // the UI thread
-            timer.Tick += new EventHandler(TimerTick);
-            timer.Start();
+            _timer.Tick += new EventHandler(TimerTick);
+            _timer.Start();
         }
 
         private void TimerTick(object s, EventArgs a)
@@ -52,6 +53,7 @@ namespace ExcelConverter
 
         private void OnWindowClosed(object sender, EventArgs e)
         {
+            _timer?.Stop();
         }
 
         private void RefreshConvertList()
@@ -217,6 +219,7 @@ namespace ExcelConverter
             //TreeNode rootNode = Utils.GenFileTree(ScanProgressBar, UpdateProgress);
             //_rootNode = rootNode;
             //SetTreeSorce(rootNode);
+            ScanLabel.Content = "扫描中...";
             Utils.GenFileTree(PushUpdateProgress, PushFinishSearch);
         }
 
@@ -246,6 +249,7 @@ namespace ExcelConverter
         {
             TreeNode node = (TreeNode)value;
             SetTreeSorce(node);
+            ScanLabel.Content = "扫描完成";
         }
 
         private void MenuItemAddNodeClick(object sender, RoutedEventArgs e)
@@ -309,23 +313,14 @@ namespace ExcelConverter
         {
             var tag = ((MenuItem)sender).Tag;
             var node = _favList.Find(treeNode => (string)tag == treeNode.Path);
-            OpenFolder(node);
+            node.AutoOpen();
         }
-        
+
         private void OpenTreeItemFolder(object sender, RoutedEventArgs e)
         {
             var tag = ((MenuItem)sender).Tag;
             var node = FindTreeNode((string)tag);
-            OpenFolder(node);
-        }
-
-        private static void OpenFolder(TreeNode node)
-        {
-            if (node != null)
-            {
-                var folderPath = node.Path.Remove(node.Path.LastIndexOf("\\"));
-                Process.Start(new ProcessStartInfo(folderPath) { UseShellExecute = true });
-            }
+            node.AutoOpen();
         }
 
         private void OnTreeItemSelect(object sender, RoutedEventArgs e)
@@ -348,7 +343,7 @@ namespace ExcelConverter
             }
             else
             {
-                Process.Start(new ProcessStartInfo(node.Path) { UseShellExecute = true });
+                node.OpenFile();
             }
         }
 
@@ -359,14 +354,7 @@ namespace ExcelConverter
             if (node == null)
                 return;
 
-            if (node.Type == NodeType.Dir)
-            {
-                Process.Start(new ProcessStartInfo(node.Path) { UseShellExecute = true });
-            }
-            else
-            {
-                Process.Start(new ProcessStartInfo(node.Path) { UseShellExecute = true });
-            }
+            node.AutoOpen();
         }
 
         private TreeNode FindTreeNode(string tag)
@@ -408,72 +396,6 @@ namespace ExcelConverter
             }
 
             return null;
-        }
-    }
-
-    public enum NodeType
-    {
-        Dir,
-        File,
-    }
-
-    public class TreeNode
-    {
-        public string Name { get; set; }
-        public List<string> ChildFileName { get; set; }
-        public List<TreeNode> Child { get; set; }
-        public bool IsExpanded { get; set; }
-        //public int Tag { get; set; }
-        public NodeType Type { get; set; }
-        public string Path { get; set; }
-        public bool IsFile => Type == NodeType.File;
-
-        [NonSerialized]
-        private System.Windows.Media.Brush _color = System.Windows.Media.Brushes.White;
-        //public System.Windows.Media.Brush Color { get { return _color; } set{ _color = value; } }
-        [System.Text.Json.Serialization.JsonIgnore]
-        public System.Windows.Media.Brush Color
-        {
-            get
-            {
-                if (IsMatch)
-                {
-                    return System.Windows.Media.Brushes.LightGreen;
-                }
-                return System.Windows.Media.Brushes.White;
-            }
-        }
-
-        public bool IsMatch { get; set; }
-
-        public string SingleFileName { get { return Utils.GetFileName(Path); } }
-
-        public string GetBtnToolTip()
-        {
-            if (Name.Length > 60)
-            {
-                var spilt = Name.Replace(SingleFileName, "").Split(",");
-                string s = "";
-                for (int i = 0; i < spilt.Length; i++)
-                {
-                    s += spilt[i] + "\n";
-                }
-                return s;
-            }
-            return Name;
-        }
-
-        public override string ToString()
-        {
-            return Name;
-        }
-
-        public override bool Equals(object? obj)
-        {
-            if (!(obj is TreeNode))
-                return false;
-            TreeNode other = (TreeNode) obj;
-            return Type == other.Type && Path == other.Path && Name == other.Name;
         }
     }
 }

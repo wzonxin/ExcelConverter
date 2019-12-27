@@ -12,15 +12,29 @@ namespace ExcelConverter
     {
         private const string favFileName = "fav.json";
         private const string treeFileName = "tree.json";
+        private static string[] batFileContent;
 
         private static Action<object> _update;
         private static Action<object> _finished;
+
+        public static string WorkingPath = "";
+        public static void InitWorkingPath()
+        {
+            //string runningPath = AppDomain.CurrentDomain.BaseDirectory;
+            //var info = Directory.GetParent(System.Reflection.Assembly.GetExecutingAssembly().Location);
+            //string path = info.FullName;
+
+            string path = "";
+#if DEBUG
+            path = "C:\\Work\\data";
+#else
+            path = Environment.CurrentDirectory;
+#endif
+            Utils.WorkingPath = path;
+        }
+
         public static void GenFileTree(Action<object> updateTask, Action<object> finishTask)
         {
-            string runningPath = AppDomain.CurrentDomain.BaseDirectory;
-            string xlsPath = runningPath + "xls\\";
-            xlsPath = Utils.WorkingPath + "xls\\";
-
             _update = updateTask;
             _finished = finishTask;
 
@@ -29,7 +43,9 @@ namespace ExcelConverter
 
         private static void DoInBackgroundThread(object state)
         {
-            var xlsPath = Utils.WorkingPath + "xls\\";
+            var xlsPath = Utils.WorkingPath + "\\xls\\";
+            if (!Directory.Exists(xlsPath))
+                return;
 
             TreeNode rootNode = new TreeNode();
             Search(rootNode, xlsPath, NodeType.Dir);
@@ -151,7 +167,7 @@ namespace ExcelConverter
 
         private static TreeNode CloneTree(TreeNode tree)
         {
-            TreeNode cloneNode = CloneNode(tree);
+            TreeNode cloneNode = tree.Clone();
             if (tree.Child != null)
             {
                 for (int i = 0; i < tree.Child.Count; i++)
@@ -162,24 +178,6 @@ namespace ExcelConverter
             return cloneNode;
         }
 
-        private static TreeNode CloneNode(TreeNode srcNode)
-        {
-            TreeNode treeNode = new TreeNode();
-            treeNode.Name = srcNode.Name;
-            treeNode.Path = srcNode.Path;
-            treeNode.IsExpanded = srcNode.IsExpanded;
-            treeNode.Type = srcNode.Type;
-            if (srcNode.ChildFileName != null)
-            {
-                treeNode.ChildFileName = new List<string>(srcNode.ChildFileName);
-            }
-            if (srcNode.Child != null)
-            {
-                treeNode.Child = new List<TreeNode>(srcNode.Child);
-            }
-            return treeNode;
-        }
-
         private static void SaveFileTree(TreeNode treeNode)
         {
             var options = new JsonSerializerOptions
@@ -187,7 +185,7 @@ namespace ExcelConverter
                 WriteIndented = true
             };
             var jsonStr = JsonSerializer.Serialize(treeNode, options);
-            FileStream fileStream = File.Create(WorkingPath + treeFileName);
+            FileStream fileStream = File.Create(WorkingPath + "\\" + treeFileName);
             fileStream.Write(Encoding.UTF8.GetBytes(jsonStr));
             fileStream.Flush(true);
             fileStream.Close();
@@ -200,7 +198,7 @@ namespace ExcelConverter
                 WriteIndented = true
             };
             var jsonStr = JsonSerializer.Serialize(pathList, options);
-            FileStream fileStream = File.Create(WorkingPath + favFileName);
+            FileStream fileStream = File.Create(WorkingPath + "\\" + favFileName);
             fileStream.Write(Encoding.UTF8.GetBytes(jsonStr));
             fileStream.Flush(true);
             fileStream.Close();
@@ -208,7 +206,7 @@ namespace ExcelConverter
 
         public static TreeNode ReadTree()
         {
-            string filePath = WorkingPath + treeFileName;
+            string filePath = WorkingPath + "\\" + treeFileName;
             TreeNode root = null;
             try
             {
@@ -229,7 +227,7 @@ namespace ExcelConverter
         
         public static List<TreeNode> ReadFav()
         {
-            string filePath = WorkingPath + favFileName;
+            string filePath = WorkingPath + "\\" + favFileName;
             List<TreeNode> list = null;
             try
             {
@@ -250,6 +248,9 @@ namespace ExcelConverter
 
         public static void ConvertExcel(List<TreeNode> convertList)
         {
+            if (convertList.Count <= 0)
+                return;
+
             List<string> pathList = new List<string>();
             ConvertToPath(convertList, ref pathList);
             CopyXlsToTmpDir(ref pathList); 
@@ -276,6 +277,7 @@ namespace ExcelConverter
             }
 
             ExecuteCovertBat(cmdList);
+            batFileContent = null;
         }
 
         private static void CopyXlsToTmpDir(ref List<string> pathList)
@@ -288,7 +290,7 @@ md .\csv
 ";
             for (int i = 0; i < pathList.Count; i++)
             {
-                copyStr += "copy /y " + pathList[i] + " " + WorkingPath + "xls_tmp\\" + GetFileName(pathList[i]) + "\r\n";
+                copyStr += "copy /y " + pathList[i] + " " + WorkingPath + "\\xls_tmp\\" + GetFileName(pathList[i]) + "\r\n";
                 var fileName = GetFileName(pathList[i]);
                 pathList[i] = pathList[i].Remove(pathList[i].LastIndexOf("\\xls\\")) + "\\xls_tmp\\" + fileName;
             }
@@ -302,7 +304,6 @@ md .\csv
             process.WaitForExit();
         }
 
-        public const string WorkingPath = "C:\\Work\\data\\";
         private static void ExecuteCovertBat(List<string> cmdList)
         {
             string prefix = @"set path=C:\Windows\System32;%path%" +
@@ -346,7 +347,6 @@ del  build_info.log
             return batPath;
         }
 
-        private static string[] batFileContent;
         private static string GetBatCmd(string sheetName)
         {
             if (batFileContent == null)
@@ -383,7 +383,12 @@ del  build_info.log
 
         private static string GetEnterDirStr()
         {
-            //todo
+            var pathArr = WorkingPath.Split(":");
+            var disk = pathArr[0];
+            var folderPath = pathArr[1];
+            return disk + ":\r\n"
+                + "cd " + folderPath + "\r\n";
+
             return @"
 c:
 cd \Work\data\\
