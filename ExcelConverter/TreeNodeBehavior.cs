@@ -20,6 +20,18 @@ namespace ExcelConverter
             return Name;
         }
 
+        public System.Windows.Media.SolidColorBrush GetBtnColor()
+        {
+            if (IsFile)
+            {
+               return System.Windows.Media.Brushes.GhostWhite;
+            }
+            else
+            {
+                return System.Windows.Media.Brushes.LightGoldenrodYellow;
+            }
+        }
+
         public override string ToString()
         {
             return Name;

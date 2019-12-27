@@ -319,7 +319,7 @@ del  build_err.log
 del  build_info.log
 
 ";
-            string middle = WorkingPath + "\\x2c\\xls2csv " + (WorkingPath + "xls_tmp\\ ") + (WorkingPath + "\\csv \"x2c.x2c\"\r\n\r\n");
+            string middle = WorkingPath + "\\x2c\\xls2csv " + (WorkingPath + "\\xls_tmp\\ ") + (WorkingPath + "\\csv \"x2c.x2c\"\r\n\r\n");
 
             string cmd = "";
             for (int i = 0; i < cmdList.Count; i++)
@@ -339,7 +339,7 @@ del  build_info.log
 
         private static string CreateTmpBat(string content)
         {
-            string batPath = WorkingPath + "tmp.bat";
+            string batPath = WorkingPath + "\\tmp.bat";
             var file = File.Create(batPath);
             file.Write(Encoding.GetEncoding("GBK").GetBytes(content));
             file.Flush(true);
@@ -351,7 +351,7 @@ del  build_info.log
         {
             if (batFileContent == null)
             {
-                batFileContent = File.ReadAllLines(WorkingPath + "策划转表_公共.bat", Encoding.GetEncoding("GBK"));
+                batFileContent = File.ReadAllLines(WorkingPath + "\\策划转表_公共.bat", Encoding.GetEncoding("GBK"));
             }
 
             for (var i = 0; i < batFileContent.Length; i++)
@@ -386,7 +386,7 @@ del  build_info.log
             var pathArr = WorkingPath.Split(":");
             var disk = pathArr[0];
             var folderPath = pathArr[1];
-            return disk + ":\r\n"
+            return "\r\n" + disk + ":\r\n"
                 + "cd " + folderPath + "\r\n";
 
             return @"
@@ -429,6 +429,18 @@ cd \Work\data\\
             }
             sheetNames += ")";
             return sheetNames;
+        }
+
+        public static int SortList(TreeNode node1, TreeNode node2)
+        {
+            if(node1.Type != node2.Type)
+            {
+                return (node1.Type - node2.Type);
+            }
+            else
+            {
+                return node1.SingleFileName.CompareTo(node2.SingleFileName);
+            }
         }
     }
 }

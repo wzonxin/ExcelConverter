@@ -110,6 +110,7 @@ namespace ExcelConverter
                 Content = treeNode.SingleFileName,
                 Tag = treeNode.Path,
                 ToolTip = treeNode.GetBtnToolTip(),
+                Background = treeNode.GetBtnColor(),
             };
             bt.Click += FavItemClick;
 
@@ -151,6 +152,7 @@ namespace ExcelConverter
                 Height = height,
                 Content = treeNode.SingleFileName,
                 ToolTip = treeNode.GetBtnToolTip(),
+                Background = treeNode.GetBtnColor(),
             };
 
             bt.ContextMenu = new ContextMenu();
@@ -162,9 +164,7 @@ namespace ExcelConverter
             item.Click += RemoveCovertItemClick;
             item.Tag = treeNode.Path;
             menuItems.Add(item);
-
-            bt.Background = System.Windows.Media.Brushes.White;
-
+            
             return bt;
         }
 
@@ -259,6 +259,7 @@ namespace ExcelConverter
             if (!_favList.Contains(node))
             {
                 _favList.Add(node);
+                _favList.Sort(Utils.SortList);
                 Utils.SaveFav(_favList);
             }
             LoadFavList();
@@ -276,6 +277,7 @@ namespace ExcelConverter
             if (node != null && !_convertList.Contains(node))
             {
                 _convertList.Add(node);
+                _convertList.Sort(Utils.SortList);
                 RefreshConvertList();
             }
         }
