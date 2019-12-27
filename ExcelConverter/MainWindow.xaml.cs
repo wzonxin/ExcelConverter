@@ -17,7 +17,6 @@ namespace ExcelConverter
         private List<TreeNode> _convertList = new List<TreeNode>();
         private List<TreeNode> _favList;
         private TreeNode _rootNode;
-        private List<TimerTask> _taskList = new List<TimerTask>();
         private System.Windows.Threading.DispatcherTimer _timer;
 
         public MainWindow()
@@ -39,21 +38,26 @@ namespace ExcelConverter
             // the UI thread
             _timer.Tick += new EventHandler(TimerTick);
             _timer.Start();
+
+            InitEvent();
+        }
+
+        private void InitEvent()
+        {
+            EventDispatcher.RegdEvent<string>(TaskType.SearchError, OnSearchError);
+            EventDispatcher.RegdEvent<float>(TaskType.UpdateSearchProgress, UpdateProgress);
+            EventDispatcher.RegdEvent<TreeNode>(TaskType.FinshedSearch, OnFinishedSearch);
         }
 
         private void TimerTick(object s, EventArgs a)
         {
-            if(_taskList.Count > 0)
-            {
-                var task = _taskList[0];
-                task.Action(task.Data);
-                _taskList.RemoveAt(0);
-            }
+            EventDispatcher.CheckTick();
         }
 
         private void OnWindowClosed(object sender, EventArgs e)
         {
             _timer?.Stop();
+            EventDispatcher.Clear();
         }
 
         private void RefreshConvertList()
@@ -220,36 +224,24 @@ namespace ExcelConverter
             //_rootNode = rootNode;
             //SetTreeSorce(rootNode);
             ScanLabel.Content = "扫描中...";
-            Utils.GenFileTree(PushUpdateProgress, PushFinishSearch);
+            Utils.GenFileTree();
         }
 
-        private void PushUpdateProgress(object obj)
+        private void UpdateProgress(float value)
         {
-            TimerTask task = new TimerTask();
-            task.Data = obj;
-            task.Action = UpdateProgress;
-            _taskList.Add(task);
-        }
-
-        private void UpdateProgress(object value)
-        {
-            float val = (float)value;
+            float val = value;
             ScanProgressBar.Value = val * 100;
         }
 
-        private void PushFinishSearch(object obj)
+        private void OnFinishedSearch(TreeNode node)
         {
-            TimerTask task = new TimerTask();
-            task.Data = obj;
-            task.Action = OnFinishedSearch;
-            _taskList.Add(task);
-        }
-
-        private void OnFinishedSearch(object value)
-        {
-            TreeNode node = (TreeNode)value;
             SetTreeSorce(node);
             ScanLabel.Content = "扫描完成";
+        }
+
+        private void OnSearchError(string errorStr)
+        {
+            ScanLabel.Content = errorStr;
         }
 
         private void MenuItemAddNodeClick(object sender, RoutedEventArgs e)

@@ -1,19 +1,39 @@
 ﻿using System;
-using System.Collections.Generic;
-using System.Text;
 
 namespace ExcelConverter
 {
-    public enum TaskType
+    public enum TaskType 
     {
-        UpdateProgress,
-        FinishSearch,
+        SearchError,
+        UpdateSearchProgress,
+        FinshedSearch,
     }
 
-    class TimerTask
+    interface ITask
     {
-        public object Data;
-        public TaskType TaskType;
-        public Action<object> Action;
+        void DoAction();
+    }
+
+    class TimerTask<T> : ITask
+    {
+        public T Data;
+        public Action<T> Action;
+
+        public void DoAction()
+        {
+            Action(Data);
+        }
+    }
+
+    class TimerTask<T, K> : ITask
+    {
+        public T Data;
+        public K Data2;
+        public Action<T, K> Action;
+
+        public void DoAction()
+        {
+            Action(Data, Data2);
+        }
     }
 }

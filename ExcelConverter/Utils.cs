@@ -14,9 +14,6 @@ namespace ExcelConverter
         private const string treeFileName = "tree.json";
         private static string[] batFileContent;
 
-        private static Action<object> _update;
-        private static Action<object> _finished;
-
         public static string WorkingPath = "";
         public static void InitWorkingPath()
         {
@@ -33,11 +30,8 @@ namespace ExcelConverter
             Utils.WorkingPath = path;
         }
 
-        public static void GenFileTree(Action<object> updateTask, Action<object> finishTask)
+        public static void GenFileTree()
         {
-            _update = updateTask;
-            _finished = finishTask;
-
             System.Threading.ThreadPool.QueueUserWorkItem(new System.Threading.WaitCallback(DoInBackgroundThread));
         }
 
@@ -45,12 +39,15 @@ namespace ExcelConverter
         {
             var xlsPath = Utils.WorkingPath + "\\xls\\";
             if (!Directory.Exists(xlsPath))
+            {
+                EventDispatcher.SendEvent(TaskType.SearchError, "xls文件夹不存在");
                 return;
+            }
 
             TreeNode rootNode = new TreeNode();
             Search(rootNode, xlsPath, NodeType.Dir);
             SaveFileTree(rootNode);
-            _finished?.Invoke(rootNode);
+            EventDispatcher.SendEvent(TaskType.FinshedSearch, rootNode);
             GC.Collect();
         }
 
@@ -77,8 +74,7 @@ namespace ExcelConverter
                 Search(node, childDirPath[i], NodeType.Dir);
                 childNodes.Add(node);
 
-                //_updateScanAction?.Invoke((i + 1f) / childDirPath.Length);
-                _update?.Invoke((i + 1f) / childDirPath.Length);
+                EventDispatcher.SendEvent(TaskType.UpdateSearchProgress, (i + 1f) / childDirPath.Length);
             }
 
             for (int i = 0; i < files.Length; i++)
