@@ -60,8 +60,6 @@ namespace ExcelConverter
 
         private void RefreshConvertList()
         {
-            if (_convertList.Count <= 0) return;
-
             float width = 70;
             float height = 30;
             int colMax = 6;
@@ -195,11 +193,18 @@ namespace ExcelConverter
                 TreeNode newTreeNode = null;
                 Utils.FilterTree(_rootNode, inputText, ref newTreeNode);
                 SetTreeSorce(newTreeNode);
+                ClearSearchBtn.Visibility = Visibility.Visible;
             }
             else
             {
                 SetTreeSorce(_rootNode);
+                ClearSearchBtn.Visibility = Visibility.Hidden;
             }
+        }
+
+        private void ClickClearSearchBtn(object sender, RoutedEventArgs e)
+        {
+            SearchBox.Text = string.Empty;
         }
 
         private void SetTreeSorce(TreeNode node)
@@ -215,6 +220,13 @@ namespace ExcelConverter
             //SetTreeSorce(rootNode);
             ScanLabel.Content = "扫描中...";
             Utils.GenFileTree();
+        }
+
+        private void OnClearConvertList(object sender, RoutedEventArgs e)
+        {
+            _convertList.Clear();
+
+            RefreshConvertList();
         }
 
         private void UpdateProgress(float value)
@@ -339,7 +351,14 @@ namespace ExcelConverter
             if (node == null)
                 return;
 
-            node.AutoOpen();
+            if (node.IsFile)
+            {
+                node.OpenFile();
+            }
+            else
+            {
+                node.OpenFolderDir();
+            }
         }
 
         private TreeNode FindTreeNode(string tag)

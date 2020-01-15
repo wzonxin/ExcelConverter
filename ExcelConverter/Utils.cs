@@ -104,6 +104,7 @@ namespace ExcelConverter
             if (childs == null)
                 return false;
 
+            //当前文件夹名字匹配上就不用找子文件(夹)了，直接返回
             if (node.Name.Contains(filterStr, StringComparison.OrdinalIgnoreCase))
             {
                 node.IsMatch = true;
@@ -214,7 +215,7 @@ namespace ExcelConverter
                 };
                 root = JsonSerializer.Deserialize<TreeNode>(str, options);
             }
-            catch (Exception e)
+            catch (Exception)
             {
                 if (root == null)
                     root = new TreeNode();
@@ -235,7 +236,7 @@ namespace ExcelConverter
                 };
                 list = JsonSerializer.Deserialize<List<TreeNode>>(str, options);
             }
-            catch (Exception e)
+            catch (Exception)
             {
                 if (list == null)
                     list = new List<TreeNode>();

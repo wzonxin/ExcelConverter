@@ -15,7 +15,9 @@
         <Label x:Name="ScanLabel" Content="" HorizontalAlignment="Left" Height="23" Margin="250,38,0,0" VerticalAlignment="Top" FontSize="10.667" VerticalContentAlignment="Center" HorizontalContentAlignment="Left" Width="276" Foreground="#FF00C146"/>
         <TextBox x:Name="SearchBox" HorizontalAlignment="Right" VerticalAlignment="Top" Margin="0,10,68,0" 
                  Text="" TextWrapping="Wrap" Width="202" Height="28" TextChanged="SearchTextChange" VerticalContentAlignment="Center" ToolTip="Search Excel"/>
-        <Label x:Name="ConvertLabel" Content="待转列表：" HorizontalAlignment="Left" Height="24" VerticalAlignment="Top" Width="176" Margin="10,42,0,0"/>
+        <Button x:Name="ClearSearchBtn" Content="X" HorizontalAlignment="Right" Height="15" Margin="0,16,71,0" VerticalAlignment="Top" Width="20" Background="{x:Null}" BorderBrush="White" Padding="0,-1,0,0" Foreground="#FF7C6767" Visibility="Hidden" Click="ClickClearSearchBtn"/>
+        <Label x:Name="ConvertLabel" Content="待转列表：" HorizontalAlignment="Left" Height="24" VerticalAlignment="Top" Width="106" Margin="10,41,0,0"/>
+        <Button x:Name="ClearConvertListBtn" Content="清空" HorizontalAlignment="Left" Height="18" VerticalAlignment="Top" Margin="69,43,0,0" BorderBrush="White" Background="White" Foreground="Red" Width="50" Click="OnClearConvertList"/>
 
         <Border x:Name="CovertListBorder" BorderBrush="Black" Height="108" VerticalAlignment="Top" Margin="10,65,9,0" BorderThickness="1,1,1,1" >
             <Border.Style>
