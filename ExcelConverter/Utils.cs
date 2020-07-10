@@ -1,8 +1,12 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.IO;
+using System.Runtime.InteropServices;
 using System.Text;
 using System.Text.Json;
+using System.Text.RegularExpressions;
+using System.Threading;
+using System.Windows;
 using NPOI.SS.UserModel;
 using NPOI.XSSF.UserModel;
 
@@ -13,6 +17,7 @@ namespace ExcelConverter
         private const string favFileName = "fav.json";
         private const string treeFileName = "tree.json";
         private static string[] batFileContent;
+        private static string batFileStr;
 
         public static string WorkingPath = "";
         public static void InitWorkingPath()
@@ -250,7 +255,8 @@ namespace ExcelConverter
             ConvertToPath(convertList, ref pathList);
             CopyXlsToTmpDir(ref pathList); 
 
-            List<string> cmdList = new List<string>();
+            //List<string> cmdList = new List<string>();
+            Dictionary<string, string> batLineDict = new Dictionary<string, string>();
             for (int i = 0; i < pathList.Count; i++)
             {
                 string filePath = pathList[i];
@@ -262,17 +268,35 @@ namespace ExcelConverter
                 {
                     ISheet sheet = workbook.GetSheetAt(j);
                     var sheetName = sheet.SheetName;
-                    var batContent = GetBatCmd(sheetName);
-                    if (!string.IsNullOrEmpty(batContent) && !cmdList.Contains(batContent))
+                    string binName = "";
+                    var batContent = GetBatCmd(sheetName, ref binName);
+                    if (!string.IsNullOrEmpty(batContent))
                     {
-                        cmdList.Add(batContent);
+                        FilterDuplicationBat(batContent, binName, batLineDict);
                     }
                 }
                 workbook.Close();
             }
 
+            List<string> cmdList = new List<string>(batLineDict.Values);
             ExecuteCovertBat(cmdList);
-            batFileContent = null;
+            GC.Collect();
+        }
+
+        private static void FilterDuplicationBat(string lineBat, string binName, Dictionary<string, string> dict)
+        {
+            string oldBat;
+            if (!dict.TryGetValue(binName, out oldBat))
+            {
+                dict.Add(binName, lineBat);
+            }
+            else
+            {
+                if (lineBat.Length > oldBat.Length)
+                {
+                    dict[binName] = lineBat;
+                }
+            }
         }
 
         private static void CopyXlsToTmpDir(ref List<string> pathList)
@@ -303,7 +327,7 @@ md .\csv
         {
             string prefix = @"set path=C:\Windows\System32;%path%" +
                             GetEnterDirStr()
-+ 
++
 @"rd /S /Q .\bin
 rd /S /Q .\bin_cli
 md .\bin
@@ -312,6 +336,8 @@ call path_define.bat
 
 del  build_err.log
 del  build_info.log
+
+call SshGenXml.exe
 
 ";
             string middle = WorkingPath + "\\x2c\\xls2csv " + (WorkingPath + "\\xls_tmp\\ ") + (WorkingPath + "\\csv \"x2c.x2c\"\r\n\r\n");
@@ -329,8 +355,16 @@ del  build_info.log
             {
                 UseShellExecute = true,
             });
+
+            Thread.Sleep(250);
+            //MoveWindow(process.MainWindowHandle, 2000, 300, 800, 600, false);
+            MoveWindow(process.MainWindowHandle, (int)_consolePos.X - 20, (int)_consolePos.Y, 859, 452, false);
+
             process.WaitForExit();
         }
+
+        [DllImport("user32.dll", SetLastError = true)]
+        internal static extern bool MoveWindow(IntPtr hWnd, int X, int Y, int nWidth, int nHeight, bool bRepaint);
 
         private static string CreateTmpBat(string content)
         {
@@ -342,17 +376,31 @@ del  build_info.log
             return batPath;
         }
 
-        private static string GetBatCmd(string sheetName)
+        private static DateTime _lastTime; 
+        private static string GetBatCmd(string sheetName, ref string binName)
         {
-            if (batFileContent == null)
+            string batPath = WorkingPath + "\\策划转表_公共.bat";
+            FileInfo file = new FileInfo(batPath);
+            if (file.LastWriteTime != _lastTime)
             {
-                batFileContent = File.ReadAllLines(WorkingPath + "\\策划转表_公共.bat", Encoding.GetEncoding("GBK"));
+                //batFileContent = File.ReadAllLines(batPath, Encoding.GetEncoding("GBK"));
+                batFileStr = File.ReadAllText(batPath, Encoding.GetEncoding("GBK"));
+                _lastTime = file.LastWriteTime;
             }
 
-            for (var i = 0; i < batFileContent.Length; i++)
+            //for (var i = 0; i < batFileContent.Length; i++)
+            //{
+            //    if (Regex.IsMatch(batFileContent[i], sheetName))
+            //        return batFileContent[i];
+            //}
+
+            var match = Regex.Match(batFileStr, string.Format("call.*? {0}[\\r\\n| .*\\r\\n]", sheetName));
+            if (match.Success)
             {
-                if (batFileContent[i].Contains(sheetName))
-                    return batFileContent[i];
+                string bat = match.Value;
+                var binMatch = Regex.Match(bat, @"call.*? \w+ ");
+                binName = binMatch.Groups[0].Value;
+                return bat;
             }
 
             return "";
@@ -383,11 +431,6 @@ del  build_info.log
             var folderPath = pathArr[1];
             return "\r\n" + disk + ":\r\n"
                 + "cd " + folderPath + "\r\n";
-
-            return @"
-c:
-cd \Work\data\\
-";
         }
 
         public static string GetTreeItemName(string fullPath, NodeType nodeType)
@@ -411,19 +454,56 @@ cd \Work\data\\
         public static string GetSubSheetNames(string xlsPath)
         {
             FileInfo inputStream = new FileInfo(xlsPath);
-            IWorkbook workbook = new XSSFWorkbook(inputStream);
-            int sheetCnt = workbook.NumberOfSheets;
             string sheetNames = "(";
-            for (int j = 0; j < sheetCnt; j++)
+
+            var newXlsPath = xlsPath;
+            if (IsFileInUse(xlsPath))
             {
-                ISheet sheet = workbook.GetSheetAt(j);
-                var sheetName = sheet.SheetName;
-                sheetNames += sheetName;
-                if (j < sheetCnt - 1)
-                    sheetNames += ", ";
+                string destFileName = $"{WorkingPath}/xls_tmp/{inputStream.Name}";
+                if(File.Exists(destFileName))
+                    File.Delete(destFileName);
+                File.Copy(xlsPath, destFileName);
+                newXlsPath = destFileName;
+                inputStream = new FileInfo(newXlsPath);
             }
-            sheetNames += ")";
+
+            if(File.Exists(newXlsPath))
+            {
+                IWorkbook workbook = new XSSFWorkbook(inputStream);
+                int sheetCnt = workbook.NumberOfSheets;
+                for (int j = 0; j < sheetCnt; j++)
+                {
+                    ISheet sheet = workbook.GetSheetAt(j);
+                    var sheetName = sheet.SheetName;
+                    sheetNames += sheetName;
+                    if (j < sheetCnt - 1)
+                        sheetNames += ", ";
+                }
+                sheetNames += ")";
+            }
+            
             return sheetNames;
+        }
+
+        public static bool IsFileInUse(string fileName)
+        {
+            bool inUse = true;
+
+            FileStream fs = null;
+            try
+            {
+                fs = new FileStream(fileName, FileMode.Open, FileAccess.Read, FileShare.None);
+                inUse = false;
+            }
+            catch
+            {
+            }
+            finally
+            {
+                if (fs != null)
+                    fs.Close();
+            }
+            return inUse;//true表示正在使用,false没有使用
         }
 
         public static int SortList(TreeNode node1, TreeNode node2)
@@ -436,6 +516,12 @@ cd \Work\data\\
             {
                 return node1.SingleFileName.CompareTo(node2.SingleFileName);
             }
+        }
+
+        private static Point _consolePos;
+        public static void SetConsolePos(Point point)
+        {
+            _consolePos = point;
         }
     }
 }

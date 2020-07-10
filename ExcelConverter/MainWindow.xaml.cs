@@ -40,7 +40,7 @@ namespace ExcelConverter
             InitEvent();
         }
 
-        private void InitEvent()
+    private void InitEvent()
         {
             EventDispatcher.RegdEvent<string>(TaskType.SearchError, OnSearchError);
             EventDispatcher.RegdEvent<float>(TaskType.UpdateSearchProgress, UpdateProgress);
@@ -182,6 +182,8 @@ namespace ExcelConverter
                 return;
             }
 
+            Point point = new Point(Left, Top);
+            Utils.SetConsolePos(point);
             Utils.ConvertExcel(_convertList);
         }
 
@@ -347,9 +349,12 @@ namespace ExcelConverter
         private void FavItemClick(object sender, RoutedEventArgs e)
         {
             Button btn = (Button)sender;
-            TreeNode node = FindTreeNode((string)btn.Tag);
-            if (node == null)
-                return;
+            //TreeNode node = FindTreeNode((string)btn.Tag);
+            //if (node == null)
+            //    return;
+
+            var tag = (string) btn.Tag;
+            var node = _favList.Find(treeNode => (string)tag == treeNode.Path);
 
             if (node.IsFile)
             {
