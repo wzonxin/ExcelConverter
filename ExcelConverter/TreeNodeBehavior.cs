@@ -52,10 +52,10 @@ namespace ExcelConverter
             treeNode.Path = Path;
             treeNode.IsExpanded = IsExpanded;
             treeNode.Type = Type;
-            if (ChildFileName != null)
-            {
-                treeNode.ChildFileName = new List<string>(ChildFileName);
-            }
+            //if (ChildFileName != null)
+            //{
+            //    treeNode.ChildFileName = new List<string>(ChildFileName);
+            //}
             if (Child != null)
             {
                 treeNode.Child = new List<TreeNode>(Child);
@@ -65,32 +65,39 @@ namespace ExcelConverter
 
         public void AutoOpen()
         {
+            string absolutePath = GetAbsolutePath();
             if (IsFile)
             {
-                if (System.IO.File.Exists(Path))
+                if (System.IO.File.Exists(absolutePath))
                     OpenFolderFile();
             }
             else
             {
-                if(System.IO.Directory.Exists(Path))
+                if(System.IO.Directory.Exists(absolutePath))
                     OpenFolderDir();
             }
         }
 
         public void OpenFolderDir()
         {
-            Process.Start(new ProcessStartInfo(Path) { UseShellExecute = true });
+            Process.Start(new ProcessStartInfo(GetAbsolutePath()) { UseShellExecute = true });
         }
 
         public void OpenFolderFile()
         {
-            Process.Start("Explorer.exe", "/select," + Path);
+            Process.Start("Explorer.exe", "/select," + GetAbsolutePath());
         }
 
         public void OpenFile()
         {
-            if (System.IO.File.Exists(Path))
-                Process.Start(new ProcessStartInfo(Path) { UseShellExecute = true });
+            var path = GetAbsolutePath();
+            if (System.IO.File.Exists(path))
+                Process.Start(new ProcessStartInfo(path) { UseShellExecute = true });
+        }
+
+        public string GetAbsolutePath()
+        {
+            return Utils.GetAbsolutePath(Path);
         }
     }
 }

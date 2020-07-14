@@ -81,7 +81,6 @@ namespace ExcelConverter
         private void LoadFavList()
         {
             _favList = Utils.ReadFav();
-            if (_favList.Count <= 0) return;
 
             float width = 70;
             float height = 30;

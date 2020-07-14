@@ -12,7 +12,7 @@ namespace ExcelConverter
     public partial class TreeNode
     {
         public string Name { get; set; }
-        public List<string> ChildFileName { get; set; }
+        //public List<string> ChildFileName { get; set; }
         public List<TreeNode> Child { get; set; }
         public NodeType Type { get; set; }
         public string Path { get; set; }

@@ -58,7 +58,8 @@ namespace ExcelConverter
 
         private static void Search(TreeNode root, string path, NodeType nodeType)
         {
-            root.Path = path;
+            //root.Path = path;
+            root.Path = GetRelativePath(path);
             root.Name = Utils.GetTreeItemName(path, nodeType);
 
             if (nodeType == NodeType.File)
@@ -70,7 +71,7 @@ namespace ExcelConverter
             root.IsExpanded = false;
             root.Type = NodeType.Dir;
             var files = Directory.GetFiles(path, "*.xlsx", SearchOption.TopDirectoryOnly);
-            root.ChildFileName = new List<string>(files);
+            //root.ChildFileName = new List<string>(files);
             var childDirPath = Directory.GetDirectories(path, "*", SearchOption.TopDirectoryOnly);
             List<TreeNode> childNodes = new List<TreeNode>();
             for (int i = 0; i < childDirPath.Length; i++)
@@ -201,7 +202,8 @@ namespace ExcelConverter
                 WriteIndented = true
             };
             var jsonStr = JsonSerializer.Serialize(pathList, options);
-            FileStream fileStream = File.Create(WorkingPath + "\\" + favFileName);
+            string saveFavDir = Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData);
+            FileStream fileStream = File.Create(saveFavDir + "\\" + favFileName);
             fileStream.Write(Encoding.UTF8.GetBytes(jsonStr));
             fileStream.Flush(true);
             fileStream.Close();
@@ -230,7 +232,8 @@ namespace ExcelConverter
         
         public static List<TreeNode> ReadFav()
         {
-            string filePath = WorkingPath + "\\" + favFileName;
+            string saveFavDir = Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData);
+            string filePath = saveFavDir + "\\" + favFileName;
             List<TreeNode> list = null;
             try
             {
@@ -412,14 +415,17 @@ call SshGenXml.exe
 
             for (var i = 0; i < nodes.Count; i++)
             {
-                if (nodes[i].Type == NodeType.Dir)
+                TreeNode node = nodes[i];
+                if (node.Type == NodeType.Dir)
                 {
-                    ConvertToPath(nodes[i].Child, ref pathList);
+                    ConvertToPath(node.Child, ref pathList);
                 }
                 else
                 {
-                    if(!nodes[i].Path.Contains("~$"))
-                        pathList.Add(nodes[i].Path);
+                    if (!node.Path.Contains("~$"))
+                    {
+                        pathList.Add(node.GetAbsolutePath());
+                    }
                 }
             }
         }
@@ -522,6 +528,16 @@ call SshGenXml.exe
         public static void SetConsolePos(Point point)
         {
             _consolePos = point;
+        }
+
+        public static string GetRelativePath(string fullPath)
+        {
+            return fullPath.Replace(WorkingPath, "");
+        }
+
+        public static string GetAbsolutePath(string relativePath)
+        {
+            return $"{WorkingPath}\\{relativePath}";
         }
     }
 }
