@@ -6,7 +6,8 @@ namespace ExcelConverter
     {
         SearchError,
         UpdateSearchProgress,
-        FinshedSearch,
+        FinishedSearch,
+        NodeCheckedChanged,
     }
 
     interface ITask
@@ -14,6 +15,16 @@ namespace ExcelConverter
         void DoAction();
     }
 
+    class TimerTask : ITask
+    {
+        public Action Action;
+
+        public void DoAction()
+        {
+            Action();
+        }
+    }
+    
     class TimerTask<T> : ITask
     {
         public T Data;

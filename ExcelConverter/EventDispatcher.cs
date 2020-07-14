@@ -14,6 +14,17 @@ namespace ExcelConverter
             _taskList = new List<ITask>();
         }
 
+        public static void SendEvent(TaskType type)
+        {
+            Delegate action;
+            if (_dictEvent.TryGetValue(type, out action))
+            { 
+                var task = new TimerTask();
+                task.Action = action as Action;
+                _taskList.Add(task);
+            }
+        }
+        
         public static void SendEvent<T>(TaskType type, T t)
         {
             Delegate action;
@@ -39,6 +50,11 @@ namespace ExcelConverter
             }
         }
 
+        public static void RegdEvent(TaskType type, Action vt)
+        {
+            _dictEvent.Add(type, vt);
+        }
+        
         public static void RegdEvent<T>(TaskType type, Action<T> vt)
         {
             _dictEvent.Add(type, vt);

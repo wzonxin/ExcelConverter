@@ -52,24 +52,25 @@ namespace ExcelConverter
             TreeNode rootNode = new TreeNode();
             Search(rootNode, xlsPath, NodeType.Dir);
             SaveFileTree(rootNode);
-            EventDispatcher.SendEvent(TaskType.FinshedSearch, rootNode);
+            EventDispatcher.SendEvent(TaskType.FinishedSearch, rootNode);
             GC.Collect();
         }
 
-        private static void Search(TreeNode root, string path, NodeType nodeType)
+        private static void Search(TreeNode treeNode, string path, NodeType nodeType)
         {
             //root.Path = path;
-            root.Path = GetRelativePath(path);
-            root.Name = Utils.GetTreeItemName(path, nodeType);
+            treeNode.Path = GetRelativePath(path);
+            treeNode.Name = GetFileName(path);
+            treeNode.SubSheetName = GetSheetListName(path, nodeType);
 
             if (nodeType == NodeType.File)
             {
-                root.Type = NodeType.File;
+                treeNode.Type = NodeType.File;
                 return;
             }
 
-            root.IsExpanded = false;
-            root.Type = NodeType.Dir;
+            treeNode.IsExpanded = false;
+            treeNode.Type = NodeType.Dir;
             var files = Directory.GetFiles(path, "*.xlsx", SearchOption.TopDirectoryOnly);
             //root.ChildFileName = new List<string>(files);
             var childDirPath = Directory.GetDirectories(path, "*", SearchOption.TopDirectoryOnly);
@@ -93,7 +94,7 @@ namespace ExcelConverter
                 childNodes.Add(node);
             }
 
-            root.Child = childNodes;
+            treeNode.Child = childNodes;
         }
 
         public static void FilterTree(TreeNode node, string filterStr, ref TreeNode filterNode)
@@ -124,7 +125,8 @@ namespace ExcelConverter
                 TreeNode child = childs[i];
                 if (child.IsFile)
                 {
-                    if (!childs[i].Name.Contains(filterStr, StringComparison.OrdinalIgnoreCase))
+                    string childName = child.GetWithSheetName();
+                    if (!childName.Contains(filterStr, StringComparison.OrdinalIgnoreCase))
                     {
                         childs.RemoveAt(i);
                         i--;
@@ -160,7 +162,8 @@ namespace ExcelConverter
                 for (int i = 0; i < matchNode.Child.Count; i++)
                 {
                     TreeNode childNode = matchNode.Child[i];
-                    if (childNode.Name.Contains(filterStr, StringComparison.OrdinalIgnoreCase))
+                    string childNodeName = childNode.GetWithSheetName();
+                    if (childNodeName.Contains(filterStr, StringComparison.OrdinalIgnoreCase))
                     {
                         childNode.IsMatch = true;
                     }
@@ -258,19 +261,14 @@ namespace ExcelConverter
             ConvertToPath(convertList, ref pathList);
             CopyXlsToTmpDir(ref pathList); 
 
-            //List<string> cmdList = new List<string>();
             Dictionary<string, string> batLineDict = new Dictionary<string, string>();
-            for (int i = 0; i < pathList.Count; i++)
+            for (int i = 0; i < convertList.Count; i++)
             {
-                string filePath = pathList[i];
-                //Create an object of FileInputStream class to read excel file
-                FileInfo inputStream = new FileInfo(filePath);
-                IWorkbook workbook = new XSSFWorkbook(inputStream);
-                int sheetCnt = workbook.NumberOfSheets;
+                List<string> subSheetList = convertList[i].SubSheetName;
+                int sheetCnt = subSheetList.Count;
                 for (int j = 0; j < sheetCnt; j++)
                 {
-                    ISheet sheet = workbook.GetSheetAt(j);
-                    var sheetName = sheet.SheetName;
+                    var sheetName = subSheetList[j];
                     string binName = "";
                     var batContent = GetBatCmd(sheetName, ref binName);
                     if (!string.IsNullOrEmpty(batContent))
@@ -278,7 +276,6 @@ namespace ExcelConverter
                         FilterDuplicationBat(batContent, binName, batLineDict);
                     }
                 }
-                workbook.Close();
             }
 
             List<string> cmdList = new List<string>(batLineDict.Values);
@@ -359,7 +356,7 @@ call SshGenXml.exe
                 UseShellExecute = true,
             });
 
-            Thread.Sleep(250);
+            Thread.Sleep(280);
             //MoveWindow(process.MainWindowHandle, 2000, 300, 800, 600, false);
             MoveWindow(process.MainWindowHandle, (int)_consolePos.X - 20, (int)_consolePos.Y, 859, 452, false);
 
@@ -439,15 +436,16 @@ call SshGenXml.exe
                 + "cd " + folderPath + "\r\n";
         }
 
-        public static string GetTreeItemName(string fullPath, NodeType nodeType)
+        private static List<string> GetSheetListName(string fullPath, NodeType nodeType)
         {
-            var fileName = GetFileName(fullPath);
-            if(nodeType == NodeType.File)
+            if (nodeType == NodeType.File)
             {
-                string subNames = GetSubSheetNames(fullPath);
-                fileName += subNames;
+                List<string> sheetNames = new List<string>();
+                GetSubSheetNames(fullPath, sheetNames);
+                return sheetNames;
             }
-            return fileName;
+
+            return null;
         }
 
         public static string GetFileName(string fullPath)
@@ -457,10 +455,9 @@ call SshGenXml.exe
             return name;
         }
 
-        public static string GetSubSheetNames(string xlsPath)
+        public static void GetSubSheetNames(string xlsPath, List<string> sheetNames)
         {
             FileInfo inputStream = new FileInfo(xlsPath);
-            string sheetNames = "(";
 
             var newXlsPath = xlsPath;
             if (IsFileInUse(xlsPath))
@@ -481,14 +478,9 @@ call SshGenXml.exe
                 {
                     ISheet sheet = workbook.GetSheetAt(j);
                     var sheetName = sheet.SheetName;
-                    sheetNames += sheetName;
-                    if (j < sheetCnt - 1)
-                        sheetNames += ", ";
+                    sheetNames.Add(sheetName);
                 }
-                sheetNames += ")";
             }
-            
-            return sheetNames;
         }
 
         public static bool IsFileInUse(string fileName)

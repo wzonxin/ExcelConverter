@@ -33,7 +33,7 @@
         </Border>
 
         <ScrollViewer x:Name="ConvertScrollViewer"  Height="106" VerticalAlignment="Top" Margin="10,66,10,0" BorderThickness="1,1,1,1">
-            <UniformGrid Columns="6" x:Name="ConvertGrid">
+            <UniformGrid Columns="6" x:Name="ConvertGrid" Width="734" Height="88">
                 <Label Content="空" Height="28" Width="117"/>
             </UniformGrid>
         </ScrollViewer>
@@ -58,23 +58,29 @@
         <TreeView Name="DirTreeView"  Margin="10,313,10,0" ItemsSource="{Binding DataSource}">
             <TreeView.ItemTemplate>
                 <HierarchicalDataTemplate ItemsSource="{Binding Child}" DataType="{x:Type local:TreeNode}">
-                    <Button Content="{Binding Name}" Width="Auto" Click="OnTreeItemSelect" Background="{Binding Color}" BorderThickness="0,0,0,0" Tag="{Binding Path}">
-                        <Button.ContextMenu>
-                            <ContextMenu>
-                                <MenuItem Header="添加转表" Name="MenuItemAddConvertNode" Click="TreeItemAddConvert" Tag="{Binding Path}"/>
-                                <MenuItem Header="打开文件夹" Name="MenuItemOpenFolderNode" Click="OpenTreeItemFolder" Tag="{Binding Path}"/>
-                                <MenuItem Header="添加收藏" Name="MenuItemAddNode" Click="MenuItemAddNodeClick" Tag="{Binding Path}"/>
-                                <MenuItem Header="删除收藏" Name="MenuItemDeleteNode" Click="MenuItemDeleteNodeClick" Tag="{Binding Path}"/>
-                            </ContextMenu>
-                        </Button.ContextMenu>
-                    </Button>
+                    <WrapPanel>
+                        <CheckBox  Width="20" IsChecked="{Binding IsOn}"/>
+                        <Button Content="{Binding WithSheetName}" Width="Auto" Click="OnTreeItemBtnSelect" Background="{Binding Color}" BorderThickness="0,0,0,0" Tag="{Binding Path}">
+                            <Button.ContextMenu>
+                                <ContextMenu>
+                                    <MenuItem Header="直接转表" Name="MenuItemDirectConvertNode" Click="TreeItemDirectConvert" Tag="{Binding Path}"/>
+                                    <!--<MenuItem Header="添加待转" Name="MenuItemAddConvertNode" Click="TreeItemAddConvert" Tag="{Binding Path}"/>-->
+                                    <MenuItem Header="打开文件夹" Name="MenuItemOpenFolderNode" Click="OpenTreeItemFolder" Tag="{Binding Path}"/>
+                                    <MenuItem Header="添加收藏" Name="MenuItemAddNode" Click="MenuItemAddNodeClick" Tag="{Binding Path}"/>
+                                    <MenuItem Header="删除收藏" Name="MenuItemDeleteNode" Click="MenuItemDeleteNodeClick" Tag="{Binding Path}"/>
+                                </ContextMenu>
+                            </Button.ContextMenu>
+                        </Button>
+                    </WrapPanel>
                 </HierarchicalDataTemplate>
             </TreeView.ItemTemplate>
 
             <TreeView.ItemContainerStyle>
-                <Style TargetType="{x:Type TreeViewItem}">
+                <Style TargetType="{x:Type TreeViewItem}" BasedOn="{StaticResource {x:Type TreeViewItem}}">
                     <!--<Setter Property="IsExpanded" Value="True"/>-->
                     <Setter Property="IsExpanded" Value="{Binding IsExpanded}"/>
+                    <EventSetter Event="Collapsed" Handler="OnTreeViewItemCollapseStateChanged" />
+                    <EventSetter Event="Expanded" Handler="OnTreeViewItemCollapseStateChanged" />
                 </Style>
             </TreeView.ItemContainerStyle>
         </TreeView>

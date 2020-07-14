@@ -7,9 +7,10 @@ namespace ExcelConverter
     {
         public string GetBtnToolTip()
         {
-            if (Name.Length > 60)
+            var withSheetName = GetWithSheetName();
+            if (withSheetName.Length > 60)
             {
-                var spilt = Name.Replace(SingleFileName, "").Split(",");
+                var spilt = withSheetName.Replace(SingleFileName, "").Split(",");
                 string s = "";
                 for (int i = 0; i < spilt.Length; i++)
                 {
@@ -17,7 +18,7 @@ namespace ExcelConverter
                 }
                 return s;
             }
-            return Name;
+            return withSheetName;
         }
 
         public System.Windows.Media.SolidColorBrush GetBtnColor()
@@ -47,20 +48,21 @@ namespace ExcelConverter
 
         public TreeNode Clone()
         {
-            TreeNode treeNode = new TreeNode();
-            treeNode.Name = Name;
-            treeNode.Path = Path;
-            treeNode.IsExpanded = IsExpanded;
-            treeNode.Type = Type;
-            //if (ChildFileName != null)
-            //{
-            //    treeNode.ChildFileName = new List<string>(ChildFileName);
-            //}
+            TreeNode cloneNode = new TreeNode();
+            cloneNode.Name = Name;
+            cloneNode.Path = Path;
+            cloneNode.IsExpanded = IsExpanded;
+            cloneNode.Type = Type;
+            if (SubSheetName != null)
+            {
+                cloneNode.SubSheetName = new List<string>(SubSheetName);
+            }
             if (Child != null)
             {
-                treeNode.Child = new List<TreeNode>(Child);
+                cloneNode.Child = new List<TreeNode>(Child);
             }
-            return treeNode;
+
+            return cloneNode;
         }
 
         public void AutoOpen()
@@ -98,6 +100,38 @@ namespace ExcelConverter
         public string GetAbsolutePath()
         {
             return Utils.GetAbsolutePath(Path);
+        }
+
+        private string GenXlsName()
+        {
+            if (SubSheetName == null)
+                return string.Empty;
+
+            string sheetNames = "(";
+            int sheetCnt = SubSheetName.Count;
+            for (int j = 0; j < sheetCnt; j++)
+            {
+                var sheetName = SubSheetName[j];
+                sheetNames += sheetName;
+                if (j < sheetCnt - 1)
+                    sheetNames += ", ";
+            }
+            sheetNames += ")";
+            return sheetNames;
+        }
+
+        private string _name;
+        public string GetWithSheetName()
+        {
+            if (string.IsNullOrEmpty(_name))
+            {
+                if (IsFile)
+                    _name = Name + GenXlsName();
+                else
+                    _name = Name;
+            }
+
+            return _name;
         }
     }
 }
