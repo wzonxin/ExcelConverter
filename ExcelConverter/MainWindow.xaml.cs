@@ -79,13 +79,16 @@ namespace ExcelConverter
                 removeBt.Width = 20;
                 removeBt.Height = height - 10;
 
-                Canvas.SetTop(bt, row * height + 5);
-                Canvas.SetLeft(bt, col * width + 5);
+                //Canvas.SetTop(bt, row * height + 5);
+                //Canvas.SetLeft(bt, col * width + 5);
 
-                Canvas.SetTop(removeBt, row * height + 5);
-                Canvas.SetLeft(removeBt, row * width + 5 + 50);
+                //Canvas.SetTop(removeBt, row * height + 5);
+                //Canvas.SetLeft(removeBt, row * width + 5 + 50);
 
-                Panel panel = new WrapPanel();
+                StackPanel panel = new StackPanel();
+                panel.Orientation = Orientation.Horizontal;
+                panel.Width = 120;
+                panel.Height = height + 6;
                 panel.Children.Add(bt);
                 panel.Children.Add(removeBt);
 
@@ -140,12 +143,12 @@ namespace ExcelConverter
             };
             item.Tag = treeNode.Path;
             menuItems.Add(item);
-            
-            //item = new MenuItem();
-            //item.Header = "加入待转";
-            //item.Click += AddFavItemToCovertClick;
-            //item.Tag = treeNode.Path;
-            //menuItems.Add(item);
+
+            item = new MenuItem();
+            item.Header = "加入待转";
+            item.Click += AddFavItemToCovertClick;
+            item.Tag = treeNode.Path;
+            menuItems.Add(item);
 
             item = new MenuItem();
             item.Header = "打开文件夹";
@@ -339,19 +342,21 @@ namespace ExcelConverter
         private void AddFavItemToCovertClick(object sender, RoutedEventArgs e)
         {
             var tag = ((MenuItem)sender).Tag;
-            var node = _favList.Find(treeNode => (string) tag == treeNode.Path);
-            //AddConvertNode(node);
+            var node = FindTreeNode((string)tag);
+            AddConvertNode(node);
         }
 
-        //private void AddConvertNode(TreeNode node)
-        //{
-        //    if (node != null && !_convertList.Contains(node))
-        //    {
-        //        _convertList.Add(node);
-        //        _convertList.Sort(Utils.SortList);
-        //        RefreshConvertList();
-        //    }
-        //}
+        private void AddConvertNode(TreeNode node)
+        {
+            if (node != null && !_convertList.Contains(node))
+            {
+                _convertList.Add(node);
+                _convertList.Sort(Utils.SortList);
+                RefreshConvertList();
+                node.IsOn = true;
+                EventDispatcher.SendEvent(TaskType.NodeCheckedChanged);
+            }
+        }
 
         private void RemoveCovertItemClick(object sender, RoutedEventArgs e)
         {

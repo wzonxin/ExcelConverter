@@ -356,11 +356,11 @@ call SshGenXml.exe
                 UseShellExecute = true,
             });
 
-            Thread.Sleep(280);
+            //Thread.Sleep(280);
             //MoveWindow(process.MainWindowHandle, 2000, 300, 800, 600, false);
-            MoveWindow(process.MainWindowHandle, (int)_consolePos.X - 20, (int)_consolePos.Y, 859, 452, false);
+            //MoveWindow(process.MainWindowHandle, (int)_consolePos.X - 20, (int)_consolePos.Y, 859, 452, false);
 
-            process.WaitForExit();
+            //process.WaitForExit();
         }
 
         [DllImport("user32.dll", SetLastError = true)]

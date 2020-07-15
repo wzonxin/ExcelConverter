@@ -33,7 +33,7 @@
         </Border>
 
         <ScrollViewer x:Name="ConvertScrollViewer"  Height="106" VerticalAlignment="Top" Margin="10,66,10,0" BorderThickness="1,1,1,1">
-            <UniformGrid Columns="6" x:Name="ConvertGrid" Width="734" Height="88">
+            <UniformGrid Columns="6" x:Name="ConvertGrid" Margin="10, 3, 5, 10" VerticalAlignment="Top">
                 <Label Content="空" Height="28" Width="117"/>
             </UniformGrid>
         </ScrollViewer>
