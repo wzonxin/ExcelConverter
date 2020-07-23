@@ -23,6 +23,33 @@ namespace ExcelConverter
             get { return GetWithSheetName(); } 
         }
 
+
+        //private List<string> _binNameList;
+
+        //public List<string> BinNameList
+        //{
+        //    get
+        //    {
+        //        if (_binNameList == null)
+        //        {
+        //            _binNameList = new List<string>();
+        //            if (SubSheetName != null)
+        //            {
+        //                for (int i = 0; i < SubSheetName.Count; i++)
+        //                {
+        //                    string binName = string.Empty;
+        //                    Utils.GetBatCmd(SubSheetName[i], ref binName);
+        //                    var arr = binName.Split(" ");
+        //                    if(arr.Length >= 3)
+        //                        _binNameList.Add(arr[2]);
+        //                }
+        //            }
+        //        }
+
+        //        return _binNameList;
+        //    }
+        //}
+
         public bool _expanded;
         [JsonIgnore]
         public bool IsExpanded
@@ -74,7 +101,7 @@ namespace ExcelConverter
                 }
 
                 if(_rev == 0)
-                    EventDispatcher.SendEvent(TaskType.NodeCheckedChanged);
+                    EventDispatcher.SendEvent(TaskType.NodeCheckedChanged, this);
             }
         }
 

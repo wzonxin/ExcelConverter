@@ -1,14 +1,17 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Drawing;
 using System.IO;
 using System.Runtime.InteropServices;
 using System.Text;
 using System.Text.Json;
 using System.Text.RegularExpressions;
 using System.Threading;
-using System.Windows;
+using System.Windows.Controls;
+using System.Windows.Controls.Primitives;
 using NPOI.SS.UserModel;
 using NPOI.XSSF.UserModel;
+using Point = System.Windows.Point;
 
 namespace ExcelConverter
 {
@@ -125,8 +128,7 @@ namespace ExcelConverter
                 TreeNode child = childs[i];
                 if (child.IsFile)
                 {
-                    string childName = child.GetWithSheetName();
-                    if (!childName.Contains(filterStr, StringComparison.OrdinalIgnoreCase))
+                    if (!child.MatchSearch(filterStr))
                     {
                         childs.RemoveAt(i);
                         i--;
@@ -162,8 +164,7 @@ namespace ExcelConverter
                 for (int i = 0; i < matchNode.Child.Count; i++)
                 {
                     TreeNode childNode = matchNode.Child[i];
-                    string childNodeName = childNode.GetWithSheetName();
-                    if (childNodeName.Contains(filterStr, StringComparison.OrdinalIgnoreCase))
+                    if (childNode.MatchSearch(filterStr))
                     {
                         childNode.IsMatch = true;
                     }
@@ -377,7 +378,7 @@ call SshGenXml.exe
         }
 
         private static DateTime _lastTime; 
-        private static string GetBatCmd(string sheetName, ref string binName)
+        public static string GetBatCmd(string sheetName, ref string binName)
         {
             string batPath = WorkingPath + "\\策划转表_公共.bat";
             FileInfo file = new FileInfo(batPath);
@@ -529,7 +530,7 @@ call SshGenXml.exe
 
         public static string GetAbsolutePath(string relativePath)
         {
-            return $"{WorkingPath}\\{relativePath}";
+            return $"{WorkingPath}{relativePath}";
         }
     }
 }

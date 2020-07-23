@@ -1,4 +1,5 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
 using System.Diagnostics;
 
 namespace ExcelConverter
@@ -61,7 +62,7 @@ namespace ExcelConverter
             {
                 cloneNode.Child = new List<TreeNode>(Child);
             }
-
+            cloneNode.JustSetChecked(IsOn);
             return cloneNode;
         }
 
@@ -132,6 +133,46 @@ namespace ExcelConverter
             }
 
             return _name;
+        }
+
+        public bool MatchSearch(string searchContent)
+        {
+            string childName = GetWithSheetName();
+            if (childName.Contains(searchContent, StringComparison.CurrentCultureIgnoreCase))
+            {
+                return true;
+            }
+
+            //if (BinNameList != null)
+            //{
+            //    for (int i = 0; i < BinNameList.Count; i++)
+            //    {
+            //        if (BinNameList[i].Contains(searchContent))
+            //            return true;
+            //    }
+            //}
+
+            return false;
+        }
+
+        public void Recursive(Action<TreeNode> call)
+        {
+            if (IsFile)
+            {
+                call(this);
+            }
+            else
+            {
+                for (int i = 0; i < Child.Count; i++)
+                {
+                    Child[i].Recursive(call);
+                }
+            }
+        }
+
+        public void JustSetChecked(bool isOn)
+        {
+            _recordIsOn = isOn;
         }
     }
 }
