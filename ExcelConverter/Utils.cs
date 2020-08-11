@@ -1,14 +1,10 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Drawing;
 using System.IO;
 using System.Runtime.InteropServices;
 using System.Text;
 using System.Text.Json;
 using System.Text.RegularExpressions;
-using System.Threading;
-using System.Windows.Controls;
-using System.Windows.Controls.Primitives;
 using NPOI.SS.UserModel;
 using NPOI.XSSF.UserModel;
 using Point = System.Windows.Point;
@@ -17,9 +13,10 @@ namespace ExcelConverter
 {
     public class Utils
     {
-        private const string favFileName = "fav.json";
+        private const string favFileName = "fav_gbk.json";
+        private const string tmpFavFileName = "fav.json"; //兼容
         private const string treeFileName = "tree.json";
-        private static string[] batFileContent;
+        private const string tmpTreeFileName = "tree_tmp.json";
         private static string batFileStr;
 
         public static string WorkingPath = "";
@@ -190,7 +187,8 @@ namespace ExcelConverter
         {
             var options = new JsonSerializerOptions
             {
-                WriteIndented = true
+                WriteIndented = true,
+                Encoder = System.Text.Encodings.Web.JavaScriptEncoder.UnsafeRelaxedJsonEscaping
             };
             var jsonStr = JsonSerializer.Serialize(treeNode, options);
             FileStream fileStream = File.Create(WorkingPath + "\\" + treeFileName);
@@ -203,12 +201,13 @@ namespace ExcelConverter
         {
             var options = new JsonSerializerOptions
             {
-                WriteIndented = true
+                WriteIndented = true,
+                Encoder = System.Text.Encodings.Web.JavaScriptEncoder.UnsafeRelaxedJsonEscaping
             };
             var jsonStr = JsonSerializer.Serialize(pathList, options);
             string saveFavDir = Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData);
             FileStream fileStream = File.Create(saveFavDir + "\\" + favFileName);
-            fileStream.Write(Encoding.UTF8.GetBytes(jsonStr));
+            fileStream.Write(Encoding.GetEncoding("GBK").GetBytes(jsonStr));
             fileStream.Flush(true);
             fileStream.Close();
         }
@@ -219,12 +218,18 @@ namespace ExcelConverter
             TreeNode root = null;
             try
             {
-                var str = File.ReadAllText(filePath);
-                var options = new JsonSerializerOptions
+                if (File.Exists(filePath))
                 {
-                    WriteIndented = true
-                };
-                root = JsonSerializer.Deserialize<TreeNode>(str, options);
+                    var bytes = File.ReadAllBytes(filePath);
+                    var str = Encoding.GetEncoding("GBK").GetString(bytes);
+                    root = JsonSerializer.Deserialize<TreeNode>(str);
+                }
+                else
+                {
+                    var bytes = File.ReadAllBytes(WorkingPath + "\\" + tmpTreeFileName);
+                    var str = Encoding.GetEncoding("GBK").GetString(bytes);
+                    root = JsonSerializer.Deserialize<TreeNode>(str);
+                }
             }
             catch (Exception)
             {
@@ -241,12 +246,18 @@ namespace ExcelConverter
             List<TreeNode> list = null;
             try
             {
-                var str = File.ReadAllText(filePath);
-                var options = new JsonSerializerOptions
+                if (File.Exists(filePath))
                 {
-                    WriteIndented = true
-                };
-                list = JsonSerializer.Deserialize<List<TreeNode>>(str, options);
+                    var bytes = File.ReadAllBytes(filePath);
+                    var str = Encoding.GetEncoding("GBK").GetString(bytes);
+                    list = JsonSerializer.Deserialize<List<TreeNode>>(str);
+                }
+                else
+                {
+                    var bytes = File.ReadAllBytes(saveFavDir + "\\" + tmpFavFileName);
+                    var str = Encoding.UTF8.GetString(bytes);
+                    list = JsonSerializer.Deserialize<List<TreeNode>>(str);
+                }
             }
             catch (Exception)
             {
@@ -274,7 +285,7 @@ namespace ExcelConverter
                     var batContent = GetBatCmd(sheetName, ref binName);
                     if (!string.IsNullOrEmpty(batContent))
                     {
-                        FilterDuplicationBat(batContent, binName, batLineDict);
+                        //FilterDuplicationBat(batContent, binName, batLineDict);
                     }
                 }
             }
@@ -405,6 +416,50 @@ call SshGenXml.exe
             }
 
             return "";
+        }
+
+        public static void ParseBinList(List<BinListNode> saveList)
+        {
+            string batPath = WorkingPath + "\\策划转表_公共.bat";
+            
+            var lines = File.ReadAllLines(batPath, Encoding.GetEncoding("GBK"));
+            
+            List<string> binList = new List<string>();
+            for (int i = 0; i < lines.Length; i++)
+            {
+                if(string.IsNullOrEmpty(lines[i]))
+                    continue;
+
+                var arr = lines[i].Split(' ');
+                if(arr.Length < 4)
+                    continue;
+
+                binList.Clear();
+                binList.Add(arr[2]);
+                int startIndex = 3;
+                if (arr[1] == "do_conv_svr_spec.bat")
+                {
+                    binList.Add(arr[3]);
+                    startIndex = 4;
+                }
+
+                for (int binIdx = 0; binIdx < binList.Count; binIdx++)
+                {
+                    var binName = binList[binIdx];
+                    for (int j = startIndex; j < arr.Length; j++)
+                    {
+                        string sheetName = arr[j];
+                        if(string.IsNullOrEmpty(sheetName))
+                            continue;
+
+                        BinListNode node = new BinListNode();
+                        node.BinName = binName;
+                        node.SheetName = sheetName;
+                        node.FullName = $"{sheetName} ({binName})";
+                        saveList.Add(node);
+                    }
+                }
+            }
         }
 
         private static void ConvertToPath(List<TreeNode> nodes, ref List<string> pathList)

@@ -7,7 +7,8 @@
         mc:Ignorable="d"
         Title="转表GUI" Height="589" Width="800"
         Loaded="OnWindowLoaded"
-        Closed="OnWindowClosed">
+        Closed="OnWindowClosed"
+        Deactivated="OnWindowDeactivated">
     <Grid>
         <Button x:Name="ConvertBtn" Content="开始转表" HorizontalAlignment="Left" Height="20" Margin="66,18,0,0" VerticalAlignment="Top" Width="99" Click="Convert"/>
         <Button x:Name="ScanBtn" Content="扫描文件夹" HorizontalAlignment="Left" Height="20" Margin="250,18,0,0" VerticalAlignment="Top" Width="99" Click="ScanDir" ToolTip="新增表格后，要重新扫描"/>
@@ -57,15 +58,15 @@
             </UniformGrid>
         </ScrollViewer>
 
-        <Popup Name="SearchBinPopup" Placement="Center" HorizontalOffset="0" VerticalOffset="0" AllowsTransparency="True">
-            <StackPanel>
+        <Popup Name="SearchBinPopup" Placement="Center" HorizontalOffset="0" VerticalOffset="0" AllowsTransparency="True" Margin="0,-10">
+            <StackPanel Background="AntiqueWhite">
                 <TextBox x:Name="SearchBinBox" Text="" Margin="10,10,10,10" TextWrapping="Wrap" Width="202" Height="28" TextChanged="SearchBinTextChange" VerticalContentAlignment="Center">
                     <TextBox.Style>
                         <Style TargetType="TextBox" xmlns:sys="clr-namespace:System;assembly=mscorlib">
                             <Style.Resources>
                                 <VisualBrush x:Key="CueBannerBrush" AlignmentX="Left" AlignmentY="Center" Stretch="None">
                                     <VisualBrush.Visual>
-                                        <Label Content="输入资源容器名字" Foreground="LightGray" />
+                                        <Label Content="输入资源容器名字(例如TextConfig)" Foreground="Black" />
                                     </VisualBrush.Visual>
                                 </VisualBrush>
                             </Style.Resources>
@@ -83,16 +84,16 @@
                         </Style>
                     </TextBox.Style>
                 </TextBox>
-                <ListView Background="AntiqueWhite" Name="BinResultList" Width="300" Height="500">
+                <ListView Background="AntiqueWhite" Name="BinResultList" Width="300" Height="460">
                     <ListView.ItemTemplate>
                         <DataTemplate DataType="local:BinListNode">
                             <WrapPanel>
-                                <Button Height="20" Width="Auto" Content="{Binding FullName}" Tag="{Binding ExcelName}" ToolTip="{Binding FullName}" Click="CopyExcelName"></Button>
+                                <Button Height="20" Width="Auto" Content="{Binding FullName}" Tag="{Binding SheetName}" ToolTip="{Binding FullName}" Click="CopyExcelName"></Button>
                             </WrapPanel>
                         </DataTemplate>
                     </ListView.ItemTemplate>
                 </ListView>
-                <TextBlock Height="18" HorizontalAlignment="Center" Padding="0, 2">点击搜索结果按钮可复制表格名</TextBlock>
+                <TextBlock Height="18" HorizontalAlignment="Center" Padding="0, 2, 0, 0">点击搜索结果按钮可复制表格名</TextBlock>
                 <Button Click="HidePopupClick" Height="50" Background="Firebrick">关闭</Button>
             </StackPanel>
         </Popup>

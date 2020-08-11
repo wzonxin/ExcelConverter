@@ -4,7 +4,6 @@ using System.Text;
 using System.Text.RegularExpressions;
 using System.Windows;
 using System.Windows.Controls;
-using System.Windows.Controls.Primitives;
 
 namespace ExcelConverter
 {
@@ -18,6 +17,18 @@ namespace ExcelConverter
         private List<TreeNode> _favList;
         private TreeNode _rootNode;
         private System.Windows.Threading.DispatcherTimer _timer;
+
+        private TreeNode _curTreeNode
+        {
+            get
+            {
+                bool inSearch = !string.IsNullOrEmpty(SearchBox.Text);
+                if (inSearch)
+                    return _searchTreeNode;
+
+                return _rootNode;
+            }
+        }
 
         public MainWindow()
         {
@@ -51,14 +62,14 @@ namespace ExcelConverter
         }
 
         private void InitEvent()
-    {
-        EventDispatcher.RegdEvent<string>(TaskType.SearchError, OnSearchError);
-        EventDispatcher.RegdEvent<float>(TaskType.UpdateSearchProgress, UpdateProgress);
-        EventDispatcher.RegdEvent<TreeNode>(TaskType.FinishedSearch, OnFinishedSearch);
-        EventDispatcher.RegdEvent<TreeNode>(TaskType.NodeCheckedChanged, NodeCheckedChanged);
-    }
+        {
+            EventDispatcher.RegdEvent<string>(TaskType.SearchError, OnSearchError);
+            EventDispatcher.RegdEvent<float>(TaskType.UpdateSearchProgress, UpdateProgress);
+            EventDispatcher.RegdEvent<TreeNode>(TaskType.FinishedSearch, OnFinishedSearch);
+            EventDispatcher.RegdEvent<TreeNode>(TaskType.NodeCheckedChanged, NodeCheckedChanged);
+        }
 
-    private void TimerTick(object s, EventArgs a)
+        private void TimerTick(object s, EventArgs a)
         {
             EventDispatcher.CheckTick();
         }
@@ -67,6 +78,11 @@ namespace ExcelConverter
         {
             _timer?.Stop();
             EventDispatcher.Clear();
+        }
+
+        private void OnWindowDeactivated(object sender, EventArgs e)
+        {
+            HidePopupClick(null, null);
         }
 
         private void RefreshConvertList()
@@ -147,11 +163,11 @@ namespace ExcelConverter
 
             var item = new MenuItem();
             item.Header = "直接转表";
-            item.Click += (obj,ev) =>
+            item.Click += (obj, ev) =>
             {
                 //ConvertPopup.IsOpen = true;
 
-                Utils.ConvertExcel(new List<TreeNode>(){ treeNode });
+                Utils.ConvertExcel(new List<TreeNode>() { treeNode });
             };
             item.Tag = treeNode.Path;
             menuItems.Add(item);
@@ -204,7 +220,7 @@ namespace ExcelConverter
             //item.Click += RemoveCovertItemClick;
             //item.Tag = treeNode.Path;
             //menuItems.Add(item);
-            
+
             return bt;
         }
 
@@ -271,7 +287,7 @@ namespace ExcelConverter
             _convertList.Clear();
             RefreshConvertList();
             ClearToggleNode(_rootNode);
-            if(_searchTreeNode != null)
+            if (_searchTreeNode != null)
                 ClearToggleNode(_searchTreeNode);
             TreeNode._rev = 0;
             NodeCheckedChanged(null);
@@ -304,12 +320,8 @@ namespace ExcelConverter
         {
             SyncTreeChecked(changedNode);
 
-            TreeNode treeRootNode = null;
+            TreeNode treeRootNode = _curTreeNode;
             bool inSearch = !string.IsNullOrEmpty(SearchBox.Text);
-            if (inSearch)
-                treeRootNode = _searchTreeNode;
-            else
-                treeRootNode = _rootNode;
 
             DirTreeView.ItemsSource = null;
             SetTreeSorce(treeRootNode);
@@ -342,7 +354,7 @@ namespace ExcelConverter
             {
                 if (node.IsFile && node.IsOn)
                 {
-                    if(!updateList.Contains(node))
+                    if (!updateList.Contains(node))
                         updateList.Add(node);
                 }
             });
@@ -351,10 +363,10 @@ namespace ExcelConverter
             {
                 for (int i = 0; i < updateList.Count; i++)
                 {
-                    var check = updateList[i];
-                    if (check.Name == node.Name)
+                    var checkNode = updateList[i];
+                    if (checkNode.Name == node.Name && checkNode.Path == node.Path)
                     {
-                        node.JustSetChecked(check.IsOn);
+                        node.JustSetChecked(checkNode.IsOn);
                     }
                 }
             });
@@ -366,7 +378,7 @@ namespace ExcelConverter
             {
                 if (node.IsOn)
                 {
-                    if(!_convertList.Contains(node))
+                    if (!_convertList.Contains(node))
                         _convertList.Add(node);
                 }
             });
@@ -375,7 +387,7 @@ namespace ExcelConverter
         private void MenuItemAddNodeClick(object sender, RoutedEventArgs e)
         {
             var tag = ((MenuItem)sender).Tag;
-            var node = FindTreeNode((string) tag);
+            var node = FindTreeNode((string)tag);
             if (!_favList.Contains(node))
             {
                 _favList.Add(node);
@@ -398,7 +410,7 @@ namespace ExcelConverter
         //    var tag = menuItem.Tag;
         //    RemoveConvertNode(tag);
         //}
-        
+
         private void RemoveCovertBtnClick(object sender, RoutedEventArgs e)
         {
             var button = (Button)sender;
@@ -408,18 +420,21 @@ namespace ExcelConverter
 
         private void RemoveConvertNode(object tag)
         {
-            var node = _convertList.Find(treeNode => (string) tag == treeNode.Path);
+            var node = _convertList.Find(treeNode => (string)tag == treeNode.Path);
             _convertList.Remove(node);
             RefreshConvertList();
-            var viewNode = FindTreeNode(node.Path);
-            viewNode.IsOn = false;
-            EventDispatcher.SendEvent(TaskType.NodeCheckedChanged, viewNode);
+            var viewNode = FindNodeInTree((string)tag);
+            if (viewNode != null)
+            {
+                viewNode.IsOn = false;
+                EventDispatcher.SendEvent(TaskType.NodeCheckedChanged, viewNode);
+            }
         }
 
         private void MenuItemDeleteNodeClick(object sender, RoutedEventArgs e)
         {
             var tag = ((MenuItem)sender).Tag;
-            var node = _favList.Find((node)=> (string) tag == node.Path);
+            var node = _favList.Find((node) => (string)tag == node.Path);
             if (node != null)
             {
                 _favList.Remove(node);
@@ -433,9 +448,9 @@ namespace ExcelConverter
             var tag = ((MenuItem)sender).Tag;
             var node = FindTreeNode((string)tag);
 
-            Utils.ConvertExcel(new List<TreeNode>(){ node });
+            Utils.ConvertExcel(new List<TreeNode>() { node });
         }
-        
+
         private void TreeItemAddConvert(object sender, RoutedEventArgs e)
         {
             var tag = ((MenuItem)sender).Tag;
@@ -462,7 +477,7 @@ namespace ExcelConverter
         {
             Button btn = (Button)sender;
             ItemContainerGenerator gen;
-            TreeNode node = FindTreeNode((string) btn.Tag, out gen);
+            TreeNode node = FindTreeNode((string)btn.Tag, out gen);
 
             if (node == null)
                 return;
@@ -490,7 +505,7 @@ namespace ExcelConverter
             //if (node == null)
             //    return;
 
-            var tag = (string) btn.Tag;
+            var tag = (string)btn.Tag;
             var node = _favList.Find(treeNode => (string)tag == treeNode.Path);
 
             if (node.IsFile)
@@ -503,7 +518,7 @@ namespace ExcelConverter
             }
         }
 
-        
+
         private void ConvertNodeBtnItemClick(object sender, RoutedEventArgs e)
         {
             Button btn = (Button)sender;
@@ -511,7 +526,7 @@ namespace ExcelConverter
             //if (node == null)
             //    return;
 
-            var tag = (string) btn.Tag;
+            var tag = (string)btn.Tag;
             var node = _convertList.Find(treeNode => (string)tag == treeNode.Path);
 
             if (node.IsFile)
@@ -524,14 +539,37 @@ namespace ExcelConverter
             }
         }
 
+        private TreeNode FindNodeInTree(string tag)
+        {
+            TreeNode retNode = null;
+            bool inSearch = !string.IsNullOrEmpty(SearchBox.Text);
+            if (inSearch)
+            {
+                _searchTreeNode.Recursive(node =>
+                {
+                    if (node.Path == tag)
+                        retNode = node;
+                });
+            }
 
+            if (retNode == null)
+            {
+                _rootNode.Recursive(node =>
+                {
+                    if (node.Path == tag)
+                        retNode = node;
+                });
+            }
+
+            return retNode;
+        }
 
         private TreeNode FindTreeNode(string tag)
         {
             ItemContainerGenerator gen;
             return FindNodeByTag(DirTreeView.ItemContainerGenerator, tag, out gen);
         }
-        
+
         private TreeNode FindTreeNode(string path, out ItemContainerGenerator gen)
         {
             return FindNodeByTag(DirTreeView.ItemContainerGenerator, path, out gen);
@@ -584,9 +622,12 @@ namespace ExcelConverter
 
         private void CopyExcelName(object sender, RoutedEventArgs e)
         {
-            var btn = (Button) sender;
+            var btn = (Button)sender;
             var excelName = btn.Tag;
             Clipboard.SetDataObject(excelName);
+
+            HidePopupClick(null, null);
+            SearchBox.Text = (string)excelName;
         }
 
         private void OpenSearchBinPopup(object sender, RoutedEventArgs e)
@@ -605,53 +646,53 @@ namespace ExcelConverter
         }
 
         private bool _cached;
-        private Dictionary<string, BinListNode> _cacheDict = new Dictionary<string, BinListNode>();
+        private List<BinListNode> _cacheBinList = new List<BinListNode>();
         private TreeNode _searchTreeNode;
 
         private void SearchBin(string searchBinName, List<BinListNode> resultList)
         {
-            var itr = _cacheDict.GetEnumerator();
-            while (itr.MoveNext())
+            var itr = _cacheBinList.GetEnumerator();
+            for (int i = 0; i < _cacheBinList.Count; i++)
             {
-                var node = itr.Current.Value;
+                var node = _cacheBinList[i];
                 if (!string.IsNullOrEmpty(searchBinName) && Regex.Match(node.BinName, searchBinName, RegexOptions.IgnoreCase).Success)
                 {
                     resultList.Add(node);
                 }
             }
-            itr.Dispose();
         }
 
         private void InitBinName()
         {
             if (_cached) return;
 
-            _rootNode.Recursive((rootNode) =>
-            {
-                for (var i = 0; i < rootNode.SubSheetName.Count; i++)
-                {
-                    var sheetName = rootNode.SubSheetName[i];
-                    string fileBinName = "";
-                    Utils.GetBatCmd(sheetName, ref fileBinName);
-                    var arr = fileBinName.Split(' ');
-                    string realBinName = string.Empty;
-                    if (arr.Length >= 3)
-                        realBinName = arr[2];
-                    if (!string.IsNullOrEmpty(realBinName))
-                        //if (!string.IsNullOrEmpty(realBinName) && Regex.Match(realBinName, searchBinName).Success)
-                    {
-                        var cacheListNode = new BinListNode()
-                        {
-                            ExcelName = rootNode.SingleFileName,
-                            BinName = realBinName,
-                            SheetName = sheetName,
-                            FullName = $"{rootNode.SingleFileName} -{sheetName} ({realBinName})"
-                        };
-                        if(!_cacheDict.ContainsKey(sheetName))
-                            _cacheDict.Add(sheetName, cacheListNode);
-                    }
-                }
-            });
+            Utils.ParseBinList(_cacheBinList);
+            //_rootNode.Recursive((rootNode) =>
+            //{
+            //    for (var i = 0; i < rootNode.SubSheetName.Count; i++)
+            //    {
+            //        var sheetName = rootNode.SubSheetName[i];
+            //        string fileBinName = "";
+            //        Utils.GetBatCmd(sheetName, ref fileBinName);
+            //        var arr = fileBinName.Split(' ');
+            //        string realBinName = string.Empty;
+            //        if (arr.Length >= 3)
+            //            realBinName = arr[2];
+            //        if (!string.IsNullOrEmpty(realBinName))
+            //            //if (!string.IsNullOrEmpty(realBinName) && Regex.Match(realBinName, searchBinName).Success)
+            //        {
+            //            var cacheListNode = new BinListNode()
+            //            {
+            //                //ExcelName = rootNode.SingleFileName,
+            //                BinName = realBinName,
+            //                SheetName = sheetName,
+            //                //FullName = $"{rootNode.SingleFileName} -{sheetName} ({realBinName})"
+            //            };
+            //            if(!_cacheDict.ContainsKey(sheetName))
+            //                _cacheDict.Add(sheetName, cacheListNode);
+            //        }
+            //    }
+            //});
             _cached = true;
         }
     }

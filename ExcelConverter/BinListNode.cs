@@ -3,7 +3,7 @@ using System.Collections.Generic;
 
 namespace ExcelConverter
 {
-    class BinListNode
+    public class BinListNode
     {
         public string FullName { get; set; }
         public string ExcelName { get; set; }
