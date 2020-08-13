@@ -8,6 +8,7 @@ namespace ExcelConverter
         UpdateSearchProgress,
         FinishedSearch,
         NodeCheckedChanged,
+        ConvertOutput,
     }
 
     interface ITask

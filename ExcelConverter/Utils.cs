@@ -1,13 +1,11 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.IO;
-using System.Runtime.InteropServices;
 using System.Text;
 using System.Text.Json;
-using System.Text.RegularExpressions;
 using NPOI.SS.UserModel;
 using NPOI.XSSF.UserModel;
-using Point = System.Windows.Point;
 
 namespace ExcelConverter
 {
@@ -17,7 +15,10 @@ namespace ExcelConverter
         private const string tmpFavFileName = "fav.json"; //兼容
         private const string treeFileName = "tree.json";
         private const string tmpTreeFileName = "tree_tmp.json";
-        private static string batFileStr;
+        private const string combineFileName = "conv_zl_force_conv_combine.json";
+        private static string[] _batFileStrLine;
+        private static Dictionary<int, string[]> _batFileStrSplitDict = new Dictionary<int, string[]>();
+        private static Queue<Action> _cmdQueue = new Queue<Action>();
 
         public static string WorkingPath = "";
         public static void InitWorkingPath()
@@ -37,7 +38,7 @@ namespace ExcelConverter
 
         public static void GenFileTree()
         {
-            System.Threading.ThreadPool.QueueUserWorkItem(new System.Threading.WaitCallback(DoInBackgroundThread));
+            System.Threading.ThreadPool.QueueUserWorkItem(DoInBackgroundThread);
         }
 
         private static void DoInBackgroundThread(object state)
@@ -192,7 +193,7 @@ namespace ExcelConverter
             };
             var jsonStr = JsonSerializer.Serialize(treeNode, options);
             FileStream fileStream = File.Create(WorkingPath + "\\" + treeFileName);
-            fileStream.Write(Encoding.UTF8.GetBytes(jsonStr));
+            fileStream.Write(Encoding.GetEncoding("GBK").GetBytes(jsonStr));
             fileStream.Flush(true);
             fileStream.Close();
         }
@@ -270,48 +271,26 @@ namespace ExcelConverter
         public static void ConvertExcel(List<TreeNode> convertList)
         {
             List<string> pathList = new List<string>();
-            ConvertToPath(convertList, ref pathList);
-            CopyXlsToTmpDir(ref pathList); 
+            GetBatCmd();
 
-            Dictionary<string, string> batLineDict = new Dictionary<string, string>();
-            for (int i = 0; i < convertList.Count; i++)
-            {
-                List<string> subSheetList = convertList[i].SubSheetName;
-                int sheetCnt = subSheetList.Count;
-                for (int j = 0; j < sheetCnt; j++)
-                {
-                    var sheetName = subSheetList[j];
-                    string binName = "";
-                    var batContent = GetBatCmd(sheetName, ref binName);
-                    if (!string.IsNullOrEmpty(batContent))
-                    {
-                        //FilterDuplicationBat(batContent, binName, batLineDict);
-                    }
-                }
-            }
-
-            List<string> cmdList = new List<string>(batLineDict.Values);
-            ExecuteCovertBat(cmdList);
-            GC.Collect();
+            ConvertToPath(convertList, pathList);
+            CopyXlsToTmpDir(pathList);
+            PushCommand(CovertCsv);
+            PushCommand(ConvertBin);
+            PushCommand(GC.Collect);
         }
 
-        private static void FilterDuplicationBat(string lineBat, string binName, Dictionary<string, string> dict)
+        public static void CleanConvert()
         {
-            string oldBat;
-            if (!dict.TryGetValue(binName, out oldBat))
+            _cmdQueue.Clear();
+            if (_curProcess != null && !_curProcess.HasExited)
             {
-                dict.Add(binName, lineBat);
+                _curProcess.Kill();
             }
-            else
-            {
-                if (lineBat.Length > oldBat.Length)
-                {
-                    dict[binName] = lineBat;
-                }
-            }
+            _curProcess = null;
         }
 
-        private static void CopyXlsToTmpDir(ref List<string> pathList)
+        private static void CopyXlsToTmpDir(List<string> pathList)
         {
             string copyStr = GetEnterDirStr() + @"
 rd /S /Q .\xls_tmp
@@ -319,32 +298,74 @@ rd /S /Q .\csv
 md .\xls_tmp
 md .\csv
 ";
+
+            List<string[]> combineList = null;
+            string combineFile = $"{WorkingPath}\\{combineFileName}";
+            if (File.Exists(combineFile))
+            {
+                var bytes = File.ReadAllBytes(combineFile);
+                var str = Encoding.GetEncoding("GBK").GetString(bytes);
+                combineList = JsonSerializer.Deserialize<List<string[]>>(str);
+            }
+
             for (int i = 0; i < pathList.Count; i++)
             {
                 copyStr += "copy /y " + pathList[i] + " " + WorkingPath + "\\xls_tmp\\" + GetFileName(pathList[i]) + "\r\n";
-                var fileName = GetFileName(pathList[i]);
-                pathList[i] = pathList[i].Remove(pathList[i].LastIndexOf("\\xls\\")) + "\\xls_tmp\\" + fileName;
+                //var fileName = GetFileName(pathList[i]);
+                //pathList[i] = pathList[i].Remove(pathList[i].LastIndexOf("\\xls\\")) + "\\xls_tmp\\" + fileName;
+
+                //合表
+                if (combineList != null)
+                {
+                    string[] copyArr = null;
+                    int inIndex2 = -1;
+                    for (int j = 0; j < combineList.Count; j++)
+                    {
+                        var arr = combineList[j];
+                        for (int k = 0; k < arr.Length; k++)
+                        {
+                            if (pathList[i].EndsWith(arr[k]))
+                            {
+                                copyArr = arr;
+                                inIndex2 = k;
+                                break;
+                            }
+                        }
+                    }
+
+                    if (copyArr == null) continue;
+
+                    //copy extra excel
+                    for (int copyIdx = 0; copyIdx < copyArr.Length; copyIdx++)
+                    {
+                        if (copyIdx != inIndex2)
+                        {
+                            string extraPathRelativeWorkPath = copyArr[copyIdx];
+                            copyStr += $"copy /y {WorkingPath}\\xls\\{extraPathRelativeWorkPath} {WorkingPath}\\xls_tmp\\{GetFileName(extraPathRelativeWorkPath)}\r\n";
+                        }
+                    }
+                }
             }
 
-            var batPath = CreateTmpBat(copyStr);
-            var process = System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo(batPath)
-            {
-                UseShellExecute = false,
-                CreateNoWindow = true,
-            });
-            process.WaitForExit();
+            ExecuteBatCommand(copyStr, true);
         }
 
-        private static void ExecuteCovertBat(List<string> cmdList)
+        private static void CovertCsv()
         {
-            string prefix = @"set path=C:\Windows\System32;%path%" +
-                            GetEnterDirStr()
-+
-@"rd /S /Q .\bin
+            string middle = WorkingPath + "\\x2c\\xls2csv " + (WorkingPath + "\\xls_tmp\\ ") + (WorkingPath + "\\csv " + WorkingPath + "\\x2c.x2c\r\n\r\n");
+            ExecuteBatCommand(middle);
+        }
+
+        private static void ConvertBin()
+        {
+            var prefix = @"set path=C:\Windows\System32;%path%" +
+                     GetEnterDirStr();
+            var csvList = Directory.GetFiles($"{WorkingPath}\\csv", "*.csv");
+            string commandLines = prefix + @"rd /S /Q .\bin
 rd /S /Q .\bin_cli
 md .\bin
-md .\bin_cli
 call path_define.bat
+md .\bin_cli
 
 del  build_err.log
 del  build_info.log
@@ -352,31 +373,102 @@ del  build_info.log
 call SshGenXml.exe
 
 ";
-            string middle = WorkingPath + "\\x2c\\xls2csv " + (WorkingPath + "\\xls_tmp\\ ") + (WorkingPath + "\\csv \"x2c.x2c\"\r\n\r\n");
-
-            string cmd = "";
-            for (int i = 0; i < cmdList.Count; i++)
+            var lineIndexList = new List<int>();
+            for (int fileIdx = 0; fileIdx < csvList.Length; fileIdx++)
             {
-                cmd += cmdList[i] + "\r\n";
+                for (int lineNum = 0; lineNum < _batFileStrSplitDict.Count; lineNum++)
+                {
+                    string csvFileName = csvList[fileIdx];
+                    string withoutExtension = Path.GetFileNameWithoutExtension(csvFileName);
+                    var arr = _batFileStrSplitDict[lineNum];
+                    if (arr.Length > 3)
+                    {
+                        for (int j = 3; j < arr.Length; j++)
+                        {
+                            if (arr[j].Equals(withoutExtension, StringComparison.OrdinalIgnoreCase) &&
+                                !lineIndexList.Contains(lineNum))
+                            {
+                                lineIndexList.Add(lineNum);
+                            }
+                        }
+                    }
+                }
             }
 
-            string last = "\r\npause";
+            if (lineIndexList.Count <= 0)
+                return;
 
-            string batPath = CreateTmpBat(prefix + middle + cmd + last);
-            var process = System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo(batPath)
+            lineIndexList.Sort();
+            for (var i = 0; i < lineIndexList.Count; i++)
             {
-                UseShellExecute = true,
-            });
+                int lineNum = lineIndexList[i];
+                var lineCmd = _batFileStrLine[lineNum];
+                commandLines += lineCmd + "\r\n";
+            }
 
-            //Thread.Sleep(280);
-            //MoveWindow(process.MainWindowHandle, 2000, 300, 800, 600, false);
-            //MoveWindow(process.MainWindowHandle, (int)_consolePos.X - 20, (int)_consolePos.Y, 859, 452, false);
-
-            //process.WaitForExit();
+            ExecuteBatCommand(commandLines + "\r\n@echo 转表结束");
         }
 
-        [DllImport("user32.dll", SetLastError = true)]
-        internal static extern bool MoveWindow(IntPtr hWnd, int X, int Y, int nWidth, int nHeight, bool bRepaint);
+        /// <summary>
+        /// 为了实现非堵塞的执行，弄个队列来执行。
+        /// </summary>
+        /// <param name="action">操作的Action</param>
+        private static void PushCommand(Action action)
+        {
+            if (_cmdQueue.Count == 0)
+            {
+                action();
+            }
+            _cmdQueue.Enqueue(action);
+        }
+
+        private static Process _curProcess;
+        private static void ExecuteBatCommand(string command, bool wait = false)
+        {
+            string batPath = CreateTmpBat(command);
+            var process = Process.Start(new ProcessStartInfo(batPath)
+            {
+                UseShellExecute = false,
+                CreateNoWindow = true,
+                RedirectStandardOutput = true,
+                StandardOutputEncoding = Encoding.GetEncoding("GBK"),
+            });
+
+            if (process == null) return;
+
+            _curProcess = process;
+            process.OutputDataReceived += (sender, args) =>
+            {
+                EventDispatcher.SendEvent(TaskType.ConvertOutput, args.Data);
+            };
+            process.EnableRaisingEvents = true;                      // 启用Exited事件  
+            process.Exited += ProcessOnExited;
+            process.BeginOutputReadLine();
+
+            if (wait)
+                process.WaitForExit();
+        }
+
+        private static void ProcessOnExited(object sender, EventArgs e)
+        {
+            if (sender == _curProcess)
+            {
+                _curProcess = null;
+            }
+
+            NextCommand();
+        }
+
+        private static void NextCommand()
+        {
+            if (_cmdQueue.Count > 0)
+                _cmdQueue.Dequeue();
+            if (_cmdQueue.Count > 0)
+            {
+                var cmdAction = _cmdQueue.Dequeue();
+                cmdAction();
+            }
+        }
 
         private static string CreateTmpBat(string content)
         {
@@ -389,33 +481,19 @@ call SshGenXml.exe
         }
 
         private static DateTime _lastTime; 
-        public static string GetBatCmd(string sheetName, ref string binName)
+        public static void GetBatCmd()
         {
             string batPath = WorkingPath + "\\策划转表_公共.bat";
             FileInfo file = new FileInfo(batPath);
             if (file.LastWriteTime != _lastTime)
             {
-                //batFileContent = File.ReadAllLines(batPath, Encoding.GetEncoding("GBK"));
-                batFileStr = File.ReadAllText(batPath, Encoding.GetEncoding("GBK"));
+                _batFileStrLine = File.ReadAllLines(batPath, Encoding.GetEncoding("GBK"));
+                for (int i = 0; i < _batFileStrLine.Length; i++)
+                {
+                    _batFileStrSplitDict.Add(i, _batFileStrLine[i].Split(' '));
+                }
                 _lastTime = file.LastWriteTime;
             }
-
-            //for (var i = 0; i < batFileContent.Length; i++)
-            //{
-            //    if (Regex.IsMatch(batFileContent[i], sheetName))
-            //        return batFileContent[i];
-            //}
-
-            var match = Regex.Match(batFileStr, string.Format("call.*? {0}[\\r\\n| .*\\r\\n]", sheetName));
-            if (match.Success)
-            {
-                string bat = match.Value;
-                var binMatch = Regex.Match(bat, @"call.*? \w+ ");
-                binName = binMatch.Groups[0].Value;
-                return bat;
-            }
-
-            return "";
         }
 
         public static void ParseBinList(List<BinListNode> saveList)
@@ -462,7 +540,7 @@ call SshGenXml.exe
             }
         }
 
-        private static void ConvertToPath(List<TreeNode> nodes, ref List<string> pathList)
+        private static void ConvertToPath(List<TreeNode> nodes, List<string> pathList)
         {
             if (nodes.Count <= 0) return;
 
@@ -471,7 +549,7 @@ call SshGenXml.exe
                 TreeNode node = nodes[i];
                 if (node.Type == NodeType.Dir)
                 {
-                    ConvertToPath(node.Child, ref pathList);
+                    ConvertToPath(node.Child, pathList);
                 }
                 else
                 {
@@ -570,12 +648,6 @@ call SshGenXml.exe
             {
                 return node1.SingleFileName.CompareTo(node2.SingleFileName);
             }
-        }
-
-        private static Point _consolePos;
-        public static void SetConsolePos(Point point)
-        {
-            _consolePos = point;
         }
 
         public static string GetRelativePath(string fullPath)

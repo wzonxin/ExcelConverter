@@ -165,9 +165,7 @@ namespace ExcelConverter
             item.Header = "直接转表";
             item.Click += (obj, ev) =>
             {
-                //ConvertPopup.IsOpen = true;
-
-                Utils.ConvertExcel(new List<TreeNode>() { treeNode });
+                DoConvert(new List<TreeNode>() { treeNode });
             };
             item.Tag = treeNode.Path;
             menuItems.Add(item);
@@ -238,9 +236,17 @@ namespace ExcelConverter
                 return;
             }
 
-            Point point = new Point(Left, Top);
-            Utils.SetConsolePos(point);
-            Utils.ConvertExcel(_convertList);
+            DoConvert(_convertList);
+        }
+
+        private void DoConvert(List<TreeNode> nodeList)
+        {
+            Utils.ConvertExcel(nodeList);
+
+            ConvertDialog dlg = new ConvertDialog();
+            dlg.Owner = this;
+            dlg.OnClosedEvent += Utils.CleanConvert;
+            dlg.ShowDialog();
         }
 
         private void SearchTextChange(object sender, TextChangedEventArgs e)
@@ -309,6 +315,7 @@ namespace ExcelConverter
             _rootNode = node;
             SetTreeSorce(node);
             ScanLabel.Content = "扫描完成";
+            SearchTextChange(null, null);
         }
 
         private void OnSearchError(string errorStr)
@@ -352,7 +359,7 @@ namespace ExcelConverter
 
             updateNode.Recursive(node =>
             {
-                if (node.IsFile && node.IsOn)
+                if (node.IsFile)
                 {
                     if (!updateList.Contains(node))
                         updateList.Add(node);
@@ -387,7 +394,7 @@ namespace ExcelConverter
         private void MenuItemAddNodeClick(object sender, RoutedEventArgs e)
         {
             var tag = ((MenuItem)sender).Tag;
-            var node = FindTreeNode((string)tag);
+            var node = FindTreeViewNode((string)tag);
             if (!_favList.Contains(node))
             {
                 _favList.Add(node);
@@ -400,7 +407,7 @@ namespace ExcelConverter
         private void AddFavItemToCovertClick(object sender, RoutedEventArgs e)
         {
             var tag = ((MenuItem)sender).Tag;
-            var node = FindTreeNode((string)tag);
+            var node = FindNodeInDataTree((string)tag);
             node.IsOn = true;
         }
 
@@ -423,7 +430,7 @@ namespace ExcelConverter
             var node = _convertList.Find(treeNode => (string)tag == treeNode.Path);
             _convertList.Remove(node);
             RefreshConvertList();
-            var viewNode = FindNodeInTree((string)tag);
+            var viewNode = FindNodeInDataTree((string)tag);
             if (viewNode != null)
             {
                 viewNode.IsOn = false;
@@ -446,15 +453,15 @@ namespace ExcelConverter
         private void TreeItemDirectConvert(object sender, RoutedEventArgs e)
         {
             var tag = ((MenuItem)sender).Tag;
-            var node = FindTreeNode((string)tag);
+            var node = FindTreeViewNode((string)tag);
 
-            Utils.ConvertExcel(new List<TreeNode>() { node });
+            DoConvert(new List<TreeNode>() { node });
         }
 
         private void TreeItemAddConvert(object sender, RoutedEventArgs e)
         {
             var tag = ((MenuItem)sender).Tag;
-            var node = FindTreeNode((string)tag);
+            var node = FindTreeViewNode((string)tag);
 
             //AddConvertNode(node);
         }
@@ -469,7 +476,7 @@ namespace ExcelConverter
         private void OpenTreeItemFolder(object sender, RoutedEventArgs e)
         {
             var tag = ((MenuItem)sender).Tag;
-            var node = FindTreeNode((string)tag);
+            var node = FindTreeViewNode((string)tag);
             node.AutoOpen();
         }
 
@@ -477,7 +484,7 @@ namespace ExcelConverter
         {
             Button btn = (Button)sender;
             ItemContainerGenerator gen;
-            TreeNode node = FindTreeNode((string)btn.Tag, out gen);
+            TreeNode node = FindViewNodeByTag(DirTreeView.ItemContainerGenerator, (string)btn.Tag, out gen);
 
             if (node == null)
                 return;
@@ -539,7 +546,12 @@ namespace ExcelConverter
             }
         }
 
-        private TreeNode FindNodeInTree(string tag)
+        /// <summary>
+        /// 从data集合里直接找
+        /// </summary>
+        /// <param name="tag"></param>
+        /// <returns></returns>
+        private TreeNode FindNodeInDataTree(string tag)
         {
             TreeNode retNode = null;
             bool inSearch = !string.IsNullOrEmpty(SearchBox.Text);
@@ -564,18 +576,18 @@ namespace ExcelConverter
             return retNode;
         }
 
-        private TreeNode FindTreeNode(string tag)
+        /// <summary>
+        /// 从ui绑定的data集合里取node
+        /// </summary>
+        /// <param name="tag"></param>
+        /// <returns></returns>
+        private TreeNode FindTreeViewNode(string tag)
         {
             ItemContainerGenerator gen;
-            return FindNodeByTag(DirTreeView.ItemContainerGenerator, tag, out gen);
+            return FindViewNodeByTag(DirTreeView.ItemContainerGenerator, tag, out gen);
         }
 
-        private TreeNode FindTreeNode(string path, out ItemContainerGenerator gen)
-        {
-            return FindNodeByTag(DirTreeView.ItemContainerGenerator, path, out gen);
-        }
-
-        private TreeNode FindNodeByTag(ItemContainerGenerator container, string path, out ItemContainerGenerator generator)
+        private TreeNode FindViewNodeByTag(ItemContainerGenerator container, string path, out ItemContainerGenerator generator)
         {
             generator = null;
             foreach (TreeNode node in container.Items)
@@ -594,7 +606,7 @@ namespace ExcelConverter
                     if (treeViewItem == null)
                         continue;
 
-                    var findNode = FindNodeByTag(treeViewItem.ItemContainerGenerator, path, out generator);
+                    var findNode = FindViewNodeByTag(treeViewItem.ItemContainerGenerator, path, out generator);
                     if (findNode != null)
                     {
                         return findNode;

@@ -75,6 +75,11 @@ namespace ExcelConverter
             }
         }
 
+        public static void RemoveEvent(TaskType type)
+        {
+            _dictEvent.Remove(type);
+        }
+
         public static void Clear()
         {
             _dictEvent.Clear();
