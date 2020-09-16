@@ -46,32 +46,33 @@ namespace ExcelConverter
             var xlsPath = Utils.WorkingPath + "\\xls\\";
             if (!Directory.Exists(xlsPath))
             {
-                EventDispatcher.SendEvent(TaskType.SearchError, "xls文件夹不存在");
+                EventDispatcher.SendEvent(TaskType.SearchError, $"{xlsPath}文件夹不存在");
                 return;
             }
 
+            var tmpRootNode = ReadTree();
             TreeNode rootNode = new TreeNode();
-            Search(rootNode, xlsPath, NodeType.Dir);
+            ScanSheet(rootNode, xlsPath, NodeType.Dir, tmpRootNode);
             SaveFileTree(rootNode);
             EventDispatcher.SendEvent(TaskType.FinishedSearch, rootNode);
             GC.Collect();
         }
 
-        private static void Search(TreeNode treeNode, string path, NodeType nodeType)
+        private static void ScanSheet(TreeNode saveInfoNode, string path, NodeType nodeType, TreeNode tmpRootNode)
         {
-            //root.Path = path;
-            treeNode.Path = GetRelativePath(path);
-            treeNode.Name = GetFileName(path);
-            treeNode.SubSheetName = GetSheetListName(path, nodeType);
+            saveInfoNode.Path = GetRelativePath(path);
+            saveInfoNode.Name = GetFileName(path);
+            saveInfoNode.SubSheetName = GetSheetListName(path, nodeType, tmpRootNode);
+            saveInfoNode.LastTime = DateTime.Now;
 
             if (nodeType == NodeType.File)
             {
-                treeNode.Type = NodeType.File;
+                saveInfoNode.Type = NodeType.File;
                 return;
             }
 
-            treeNode.IsExpanded = false;
-            treeNode.Type = NodeType.Dir;
+            saveInfoNode.IsExpanded = false;
+            saveInfoNode.Type = NodeType.Dir;
             var files = Directory.GetFiles(path, "*.xlsx", SearchOption.TopDirectoryOnly);
             //root.ChildFileName = new List<string>(files);
             var childDirPath = Directory.GetDirectories(path, "*", SearchOption.TopDirectoryOnly);
@@ -79,7 +80,7 @@ namespace ExcelConverter
             for (int i = 0; i < childDirPath.Length; i++)
             {
                 TreeNode node = new TreeNode();
-                Search(node, childDirPath[i], NodeType.Dir);
+                ScanSheet(node, childDirPath[i], NodeType.Dir, tmpRootNode);
                 childNodes.Add(node);
 
                 EventDispatcher.SendEvent(TaskType.UpdateSearchProgress, (i + 1f) / childDirPath.Length);
@@ -91,11 +92,11 @@ namespace ExcelConverter
                 if (files[i].Contains("~$"))
                     continue;
 
-                Search(node, files[i], NodeType.File);
+                ScanSheet(node, files[i], NodeType.File, tmpRootNode);
                 childNodes.Add(node);
             }
 
-            treeNode.Child = childNodes;
+            saveInfoNode.Child = childNodes;
         }
 
         public static void FilterTree(TreeNode node, string filterStr, ref TreeNode filterNode)
@@ -278,6 +279,7 @@ namespace ExcelConverter
             PushCommand(CovertCsv);
             PushCommand(ConvertBin);
             PushCommand(GC.Collect);
+            PushCommand(SaveModifyTime);
         }
 
         public static void CleanConvert()
@@ -307,6 +309,9 @@ md .\csv
                 var str = Encoding.GetEncoding("GBK").GetString(bytes);
                 combineList = JsonSerializer.Deserialize<List<string[]>>(str);
             }
+
+            if (!Directory.Exists(WorkingPath + "\\xls_tmp\\"))
+                Directory.CreateDirectory(WorkingPath + "\\xls_tmp\\");
 
             for (int i = 0; i < pathList.Count; i++)
             {
@@ -361,18 +366,20 @@ md .\csv
             var prefix = @"set path=C:\Windows\System32;%path%" +
                      GetEnterDirStr();
             var csvList = Directory.GetFiles($"{WorkingPath}\\csv", "*.csv");
+
+            string svnUser, svnPassword, serverFolder;
+            ReadSvnInfo(out svnUser, out svnPassword, out serverFolder);
+
             string commandLines = prefix + @"rd /S /Q .\bin
 rd /S /Q .\bin_cli
 md .\bin
 call path_define.bat
 md .\bin_cli
 
-del  build_err.log
-del  build_info.log
+if exist build_err.log (del build_err.log)
+if exist build_info.log (del build_info.log)
 
-call SshGenXml.exe
-
-";
+call SshGenXml.exe " + $"{svnUser} {svnPassword} {serverFolder}\r\n\r\n";
             var lineIndexList = new List<int>();
             for (int fileIdx = 0; fileIdx < csvList.Length; fileIdx++)
             {
@@ -496,12 +503,17 @@ call SshGenXml.exe
             }
         }
 
-        public static void ParseBinList(List<BinListNode> saveList)
+        public static void ParseBinList(List<BinListNode> saveList, ref DateTime lastTime)
         {
             string batPath = WorkingPath + "\\策划转表_公共.bat";
-            
+            FileInfo file = new FileInfo(batPath);
+            if (file.LastWriteTime == lastTime)
+            {
+                return;
+            }
+
+            lastTime = DateTime.Now;
             var lines = File.ReadAllLines(batPath, Encoding.GetEncoding("GBK"));
-            
             List<string> binList = new List<string>();
             for (int i = 0; i < lines.Length; i++)
             {
@@ -570,16 +582,142 @@ call SshGenXml.exe
                 + "cd " + folderPath + "\r\n";
         }
 
-        private static List<string> GetSheetListName(string fullPath, NodeType nodeType)
+        private static List<string> GetSheetListName(string xlsPath, NodeType nodeType, TreeNode rootNode)
         {
-            if (nodeType == NodeType.File)
+            if (nodeType != NodeType.File)
             {
-                List<string> sheetNames = new List<string>();
-                GetSubSheetNames(fullPath, sheetNames);
-                return sheetNames;
+                return null;
             }
 
-            return null;
+            List<string> sheetNames = new List<string>();
+            FileInfo fileInfo = new FileInfo(xlsPath);
+            var originalNode = rootNode.FindNodeInChild(xlsPath.Replace(WorkingPath, ""));
+            if (originalNode != null && fileInfo.LastWriteTime <= originalNode.LastTime)
+            {
+                //无需重新扫描
+                return originalNode.SubSheetName;
+            }
+
+            var newXlsPath = xlsPath;
+            if (IsFileInUse(xlsPath))
+            {
+                string destFileName = $"{WorkingPath}/xls_tmp/{fileInfo.Name}";
+                if (File.Exists(destFileName))
+                    File.Delete(destFileName);
+                File.Copy(xlsPath, destFileName);
+                newXlsPath = destFileName;
+                fileInfo = new FileInfo(newXlsPath);
+            }
+
+            if (File.Exists(newXlsPath))
+            {
+                IWorkbook workbook = new XSSFWorkbook(fileInfo);
+                int sheetCnt = workbook.NumberOfSheets;
+                for (int j = 0; j < sheetCnt; j++)
+                {
+                    ISheet sheet = workbook.GetSheetAt(j);
+                    var sheetName = sheet.SheetName;
+                    sheetNames.Add(sheetName);
+                }
+            }
+            return sheetNames;
+
+        }
+
+        private static void SaveModifyTime()
+        {
+            string lastConvTimeTxt = WorkingPath + "\\last_conv_time.txt";
+            if (!File.Exists(lastConvTimeTxt))
+                return;
+
+            var nowTimeStamp = GetLocalDateTimeUtc();
+            File.WriteAllText(lastConvTimeTxt, nowTimeStamp.ToString());
+        }
+
+
+        public static long GetLocalDateTimeUtc()
+        {
+            DateTime dtUtcStartTime = new DateTime(1970, 1, 1, 0, 0, 0, 0, System.DateTimeKind.Utc);
+            DateTime nowTime = DateTime.UtcNow;
+            long time = nowTime.Ticks - dtUtcStartTime.Ticks;
+            time = time / 10;
+            long second = time / 1000000;
+            return second;
+        }
+
+
+        private static DateTime GetLastModifyTime()
+        {
+            string lastConvTimeTxt = WorkingPath + "\\last_conv_time.txt";
+            if(!File.Exists(lastConvTimeTxt))
+                return DateTime.Now;
+            
+            var timeStamp = File.ReadAllText(lastConvTimeTxt);
+            int res;
+            int.TryParse(timeStamp, out res);
+            DateTime dtDateTime = new DateTime(1970, 1, 1, 0, 0, 0, 0, System.DateTimeKind.Utc);
+            var newTime = dtDateTime.AddSeconds(res).ToLocalTime();
+            return newTime;
+        }
+
+        public static List<string> GetModifyList()
+        {
+            var xlsPath = Utils.WorkingPath + "\\xls\\";
+            List<string> list = new List<string>();
+            var lastModifyTime = GetLastModifyTime();
+            CheckModifyList(xlsPath, list, lastModifyTime);
+            return list;
+        }
+
+        private static void CheckModifyList(string path, List<string> saveList, DateTime lastTime)
+        {
+            var files = Directory.GetFiles(path, "*.xlsx", SearchOption.TopDirectoryOnly);
+            //root.ChildFileName = new List<string>(files);
+            var childDirPath = Directory.GetDirectories(path, "*", SearchOption.TopDirectoryOnly);
+            for (int i = 0; i < childDirPath.Length; i++)
+            {
+                CheckModifyList(childDirPath[i], saveList, lastTime);
+            }
+
+            for (int i = 0; i < files.Length; i++)
+            {
+                string fullPath = files[i];
+                if (fullPath.Contains("~$"))
+                    continue;
+
+                FileInfo info = new FileInfo(fullPath);
+                if (info.LastWriteTime > lastTime)
+                {
+                    saveList.Add(GetRelativePath(fullPath));
+                }
+            }
+        }
+
+        private static string _svnInfo = "\\svn_info";
+        public static void ReadSvnInfo(out string user, out string password, out string folder)
+        {
+            user = string.Empty;
+            password = string.Empty;
+            folder = string.Empty;
+
+            var path = WorkingPath + _svnInfo;
+            if (!File.Exists(path))
+                return;
+
+            var lines = File.ReadAllLines(path);
+            if (lines.Length >= 1)
+                user = lines[0];
+            
+            if (lines.Length >= 2)
+                password = lines[1];
+            
+            if (lines.Length >= 3)
+                folder = lines[2];
+        }
+        
+        public static void SaveSvnInfo(string user, string password, string folder)
+        {
+            File.WriteAllText(WorkingPath + _svnInfo, $"{user}\n{password}\n{folder}");
         }
 
         public static string GetFileName(string fullPath)
@@ -589,33 +727,6 @@ call SshGenXml.exe
             return name;
         }
 
-        public static void GetSubSheetNames(string xlsPath, List<string> sheetNames)
-        {
-            FileInfo inputStream = new FileInfo(xlsPath);
-
-            var newXlsPath = xlsPath;
-            if (IsFileInUse(xlsPath))
-            {
-                string destFileName = $"{WorkingPath}/xls_tmp/{inputStream.Name}";
-                if(File.Exists(destFileName))
-                    File.Delete(destFileName);
-                File.Copy(xlsPath, destFileName);
-                newXlsPath = destFileName;
-                inputStream = new FileInfo(newXlsPath);
-            }
-
-            if(File.Exists(newXlsPath))
-            {
-                IWorkbook workbook = new XSSFWorkbook(inputStream);
-                int sheetCnt = workbook.NumberOfSheets;
-                for (int j = 0; j < sheetCnt; j++)
-                {
-                    ISheet sheet = workbook.GetSheetAt(j);
-                    var sheetName = sheet.SheetName;
-                    sheetNames.Add(sheetName);
-                }
-            }
-        }
 
         public static bool IsFileInUse(string fileName)
         {

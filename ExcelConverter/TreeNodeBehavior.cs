@@ -174,5 +174,18 @@ namespace ExcelConverter
         {
             _recordIsOn = isOn;
         }
+
+        public TreeNode FindNodeInChild(string tag)
+        {
+            TreeNode retNode = null;
+            Recursive(node =>
+            {
+                if (node.Path == tag)
+                    retNode = node;
+            });
+
+
+            return retNode;
+        }
     }
 }

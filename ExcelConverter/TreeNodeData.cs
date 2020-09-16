@@ -1,4 +1,5 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
 using System.Text.Json.Serialization;
 
 namespace ExcelConverter
@@ -16,6 +17,7 @@ namespace ExcelConverter
         public List<TreeNode> Child { get; set; }
         public NodeType Type { get; set; }
         public string Path { get; set; }
+        public DateTime LastTime { get; set; }
 
         [JsonIgnore]
         public string WithSheetName

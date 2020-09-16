@@ -1,0 +1,25 @@
+﻿<Window x:Class="ExcelConverter.SvnInfoWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        xmlns:local="clr-namespace:ExcelConverter"
+        mc:Ignorable="d"
+        WindowStartupLocation="CenterOwner" 
+        Title="SvnInfoWindow" Width="450" Height="360">
+
+    <Grid Margin="10,10,10,10">
+        <Label Content="程序同步dr 用自己的svn账号。策划可以不用配置" Foreground="DarkGreen" Width="294" Height="30" HorizontalAlignment="Left" HorizontalContentAlignment="Center" VerticalAlignment="Top" Margin="26,10,0,0"></Label>
+
+        <Label Content="svn用户名：" Width="74" Height="30" HorizontalAlignment="Left" VerticalAlignment="Top" Margin="26,55,0,0"></Label>
+        <TextBox Name="SvnUser" Text="" Height="24"  VerticalAlignment="Top" Margin="140,55,35,0" VerticalContentAlignment="Center"/>
+
+        <Label Content="svn密码：" Width="74" Height="30" HorizontalAlignment="Left" VerticalAlignment="Top" Margin="26,114,0,0"></Label>
+        <PasswordBox Name="SvnPassword" Height="25"  VerticalAlignment="Top" Margin="140,117,35,0" VerticalContentAlignment="Center" />
+
+        <Label Content="服务器分支 根目录名：" Width="134" Height="30" HorizontalAlignment="Left" VerticalAlignment="Top" Margin="0,169,0,0"/>
+        <TextBox Name="ServerFolder" Text="" Height="25"  VerticalAlignment="Top" Margin="140,169,35,0" VerticalContentAlignment="Center" ToolTip="如主线的默认目录名是：server"/>
+
+        <Button Name="SaveSvnInfoBtn" Content="保存" Width="80" Height="30" Margin="150,237,150,18" Click="SaveSvnInfoBtnClick"></Button>
+    </Grid>
+</Window>

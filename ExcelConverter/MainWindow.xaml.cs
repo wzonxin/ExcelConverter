@@ -239,6 +239,24 @@ namespace ExcelConverter
             DoConvert(_convertList);
         }
 
+        private void OneKeyAdd(object sender, RoutedEventArgs e)
+        {
+            var list = Utils.GetModifyList();
+            TreeNode._rev = 1;
+
+            for (var i = 0; i < list.Count; i++)
+            {
+                var node = _rootNode.FindNodeInChild(list[i]);
+                if (node != null)
+                {
+                    node.IsOn = true;
+                }
+            }
+
+            TreeNode._rev = 0;
+            NodeCheckedChanged(null);
+        }
+
         private void DoConvert(List<TreeNode> nodeList)
         {
             Utils.ConvertExcel(nodeList);
@@ -316,11 +334,14 @@ namespace ExcelConverter
             SetTreeSorce(node);
             ScanLabel.Content = "扫描完成";
             SearchTextChange(null, null);
+
+            MessageBox.Show("扫描完成");
         }
 
         private void OnSearchError(string errorStr)
         {
-            ScanLabel.Content = errorStr;
+            //ScanLabel.Content = errorStr;
+            MessageBox.Show($"{errorStr}");
         }
 
         private void NodeCheckedChanged(TreeNode changedNode)
@@ -557,20 +578,12 @@ namespace ExcelConverter
             bool inSearch = !string.IsNullOrEmpty(SearchBox.Text);
             if (inSearch)
             {
-                _searchTreeNode.Recursive(node =>
-                {
-                    if (node.Path == tag)
-                        retNode = node;
-                });
+                retNode = _searchTreeNode.FindNodeInChild(tag);
             }
 
             if (retNode == null)
             {
-                _rootNode.Recursive(node =>
-                {
-                    if (node.Path == tag)
-                        retNode = node;
-                });
+                retNode = _rootNode.FindNodeInChild(tag);
             }
 
             return retNode;
@@ -653,17 +666,15 @@ namespace ExcelConverter
             var text = SearchBinBox.Text;
             List<BinListNode> resultList = new List<BinListNode>();
             SearchBin(text, resultList);
-            //BinResultList.ItemsSource = null;
             BinResultList.ItemsSource = resultList;
         }
 
-        private bool _cached;
+        private DateTime _lastParseTime;
         private List<BinListNode> _cacheBinList = new List<BinListNode>();
         private TreeNode _searchTreeNode;
 
         private void SearchBin(string searchBinName, List<BinListNode> resultList)
         {
-            var itr = _cacheBinList.GetEnumerator();
             for (int i = 0; i < _cacheBinList.Count; i++)
             {
                 var node = _cacheBinList[i];
@@ -676,36 +687,14 @@ namespace ExcelConverter
 
         private void InitBinName()
         {
-            if (_cached) return;
+            Utils.ParseBinList(_cacheBinList, ref _lastParseTime);
+        }
 
-            Utils.ParseBinList(_cacheBinList);
-            //_rootNode.Recursive((rootNode) =>
-            //{
-            //    for (var i = 0; i < rootNode.SubSheetName.Count; i++)
-            //    {
-            //        var sheetName = rootNode.SubSheetName[i];
-            //        string fileBinName = "";
-            //        Utils.GetBatCmd(sheetName, ref fileBinName);
-            //        var arr = fileBinName.Split(' ');
-            //        string realBinName = string.Empty;
-            //        if (arr.Length >= 3)
-            //            realBinName = arr[2];
-            //        if (!string.IsNullOrEmpty(realBinName))
-            //            //if (!string.IsNullOrEmpty(realBinName) && Regex.Match(realBinName, searchBinName).Success)
-            //        {
-            //            var cacheListNode = new BinListNode()
-            //            {
-            //                //ExcelName = rootNode.SingleFileName,
-            //                BinName = realBinName,
-            //                SheetName = sheetName,
-            //                //FullName = $"{rootNode.SingleFileName} -{sheetName} ({realBinName})"
-            //            };
-            //            if(!_cacheDict.ContainsKey(sheetName))
-            //                _cacheDict.Add(sheetName, cacheListNode);
-            //        }
-            //    }
-            //});
-            _cached = true;
+        private void OnSettingClick(object sender, RoutedEventArgs e)
+        {
+            SvnInfoWindow window = new SvnInfoWindow();
+            window.Owner = this;
+            window.Show();
         }
     }
 }
