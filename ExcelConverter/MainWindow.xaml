@@ -13,6 +13,7 @@
     <Grid>
         <Button x:Name="ConvertBtn" Content="开始转表" HorizontalAlignment="Left" Height="20" Margin="66,18,0,0" VerticalAlignment="Top" Width="99" Click="Convert"/>
         <Button x:Name="SettingBtn" Content="设置" Foreground="DarkGoldenrod" Background="Beige" HorizontalAlignment="Left" Height="20" Margin="170,18,0,0" VerticalAlignment="Top" Width="30" Click="OnSettingClick"/>
+        <Button x:Name="CheckBtn" Content="检测" Foreground="DarkGoldenrod" Background="Beige" HorizontalAlignment="Left" Height="20" Margin="343,33,0,0" VerticalAlignment="Top" Width="30" Click="OnCheckClick" RenderTransformOrigin="-4.944,0.538"/>
         <Button x:Name="OneKeyAddConvertBtn" Content="一键添加" HorizontalAlignment="Left" Height="20" Margin="230,18,0,0" VerticalAlignment="Top" Width="99" Click="OneKeyAdd"/>
         <Button x:Name="ScanBtn" Content="扫描文件夹" HorizontalAlignment="Left" Height="20" Margin="388,18,0,0" VerticalAlignment="Top" Width="99" Click="ScanDir" ToolTip="新增表格后，要重新扫描"/>
         <Button x:Name="OpenSearchBinBtn" Content="查报错表" Click="OpenSearchBinPopup" HorizontalAlignment="Right" Height="18" Margin="0,41,100,0" VerticalAlignment="Top" Width="60" Background="Tomato" Foreground="Bisque"/>

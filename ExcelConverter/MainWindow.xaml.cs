@@ -38,6 +38,7 @@ namespace ExcelConverter
         private void OnWindowLoaded(object sender, RoutedEventArgs e)
         {
             Utils.InitWorkingPath();
+            ServerLogChecker.InitServerLogPath();
             Encoding.RegisterProvider(CodePagesEncodingProvider.Instance);//注册Nuget包System.Text.Encoding.CodePages中的编码到.NET Core
             LoadExcelTree();
             LoadFavList();
@@ -695,6 +696,16 @@ namespace ExcelConverter
             SvnInfoWindow window = new SvnInfoWindow();
             window.Owner = this;
             window.Show();
+        }
+
+        private void OnCheckClick(object sender, RoutedEventArgs e)
+        {
+            ConvertDialog dlg = new ConvertDialog();
+            dlg.Owner = this;
+            dlg.OnClosedEvent += Utils.CleanConvert;
+            dlg.Show();
+
+            ServerLogChecker.ParseServerLog();
         }
     }
 }

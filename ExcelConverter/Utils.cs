@@ -29,7 +29,7 @@ namespace ExcelConverter
 
             string path = "";
 #if DEBUG
-            path = "C:\\Work\\data";
+            path = Environment.CurrentDirectory;
 #else
             path = Environment.CurrentDirectory;
 #endif
@@ -769,6 +769,11 @@ call SshGenXml.exe " + $"{svnUser} {svnPassword} {serverFolder}\r\n\r\n";
         public static string GetAbsolutePath(string relativePath)
         {
             return $"{WorkingPath}{relativePath}";
+        }
+
+        public static void DebugLog(string outputLog)
+        {
+            EventDispatcher.SendEvent(TaskType.ConvertOutput, outputLog);
         }
     }
 }

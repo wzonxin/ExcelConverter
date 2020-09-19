@@ -1,0 +1,8 @@
+{
+  "profiles": {
+    "ExcelConverter": {
+      "commandName": "Project",
+      "workingDirectory": "D:\\doc\\xianxia-lin"
+    }
+  }
+}
