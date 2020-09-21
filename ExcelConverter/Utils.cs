@@ -494,6 +494,7 @@ call SshGenXml.exe " + $"{svnUser} {svnPassword} {serverFolder}\r\n\r\n";
             FileInfo file = new FileInfo(batPath);
             if (file.LastWriteTime != _lastTime)
             {
+                _batFileStrSplitDict.Clear();
                 _batFileStrLine = File.ReadAllLines(batPath, Encoding.GetEncoding("GBK"));
                 for (int i = 0; i < _batFileStrLine.Length; i++)
                 {
