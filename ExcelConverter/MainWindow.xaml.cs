@@ -707,7 +707,13 @@ namespace ExcelConverter
             dlg.Show();
 
             ServerLogChecker.ParseServerLog();
-            ServerLogChecker.AddErrorBin(ServerLogChecker.binExcelMap[ServerLogChecker.errorBinName], ref _rootNode);
+            if (ServerLogChecker.errorBinName != "")
+                ServerLogChecker.AddErrorBin(ServerLogChecker.binExcelMap[ServerLogChecker.errorBinName], ref _rootNode);
+        }
+
+        private void ScanProgressBar_ValueChanged(object sender, RoutedPropertyChangedEventArgs<double> e)
+        {
+
         }
     }
 }
