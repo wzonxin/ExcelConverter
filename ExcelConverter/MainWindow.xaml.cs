@@ -40,6 +40,7 @@ namespace ExcelConverter
             Utils.InitWorkingPath();
             ServerLogChecker.InitServerLogPath();
             Encoding.RegisterProvider(CodePagesEncodingProvider.Instance);//注册Nuget包System.Text.Encoding.CodePages中的编码到.NET Core
+            ServerLogChecker.InitBinExcelMap();
             LoadExcelTree();
             LoadFavList();
 
@@ -706,6 +707,7 @@ namespace ExcelConverter
             dlg.Show();
 
             ServerLogChecker.ParseServerLog();
+            ServerLogChecker.AddErrorBin(ServerLogChecker.binExcelMap[ServerLogChecker.errorBinName], ref _rootNode);
         }
     }
 }
