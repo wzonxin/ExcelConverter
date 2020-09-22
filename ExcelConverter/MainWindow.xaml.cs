@@ -43,6 +43,7 @@ namespace ExcelConverter
             ServerLogChecker.InitBinExcelMap();
             LoadExcelTree();
             LoadFavList();
+            InitComboBox();
 
             _timer = new System.Windows.Threading.DispatcherTimer();
             _timer.Interval = TimeSpan.FromMilliseconds(100);
@@ -714,6 +715,18 @@ namespace ExcelConverter
         private void ScanProgressBar_ValueChanged(object sender, RoutedPropertyChangedEventArgs<double> e)
         {
 
+        }
+
+        private void InitComboBox()
+        {
+            var dirList = DirFilter.GetSelectDir();
+
+            foreach (var dir in dirList)
+            {
+                comboBox.Items.Add(dir);
+            }
+
+            comboBox.SelectedIndex = comboBox.Items.IndexOf(DirFilter.defaultDir);
         }
     }
 }
