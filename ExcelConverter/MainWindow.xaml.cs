@@ -710,8 +710,6 @@ namespace ExcelConverter
             ServerLogChecker.ParseServerLog();
             if (ServerLogChecker.errorBinName != "")
                 ServerLogChecker.AddErrorBin(ServerLogChecker.binExcelMap[ServerLogChecker.errorBinName], ref _rootNode);
-
-            ServerLogChecker.AddErrorBin(new List<string> { "商城" }, ref _rootNode);
         }
 
         private void ScanProgressBar_ValueChanged(object sender, RoutedPropertyChangedEventArgs<double> e)
