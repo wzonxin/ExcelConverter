@@ -131,7 +131,7 @@
                 </Style>
             </TreeView.ItemContainerStyle>
         </TreeView>
-        <ComboBox x:Name="comboBox" HorizontalAlignment="Left" Margin="204,12,0,0" VerticalAlignment="Top" Width="120"></ComboBox>
+        <ComboBox x:Name="comboBox" HorizontalAlignment="Left" Margin="204,12,0,0" VerticalAlignment="Top" Width="120" SelectionChanged="OnDirSelect"></ComboBox>
 
 
     </Grid>

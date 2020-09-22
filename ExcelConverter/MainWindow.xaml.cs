@@ -250,7 +250,7 @@ namespace ExcelConverter
             for (var i = 0; i < list.Count; i++)
             {
                 var node = _rootNode.FindNodeInChild(list[i]);
-                if (node != null)
+                if (node != null && !DirFilter.IsSkipDir(node.Path))
                 {
                     node.IsOn = true;
                 }
@@ -710,6 +710,8 @@ namespace ExcelConverter
             ServerLogChecker.ParseServerLog();
             if (ServerLogChecker.errorBinName != "")
                 ServerLogChecker.AddErrorBin(ServerLogChecker.binExcelMap[ServerLogChecker.errorBinName], ref _rootNode);
+
+            ServerLogChecker.AddErrorBin(new List<string> { "商城" }, ref _rootNode);
         }
 
         private void ScanProgressBar_ValueChanged(object sender, RoutedPropertyChangedEventArgs<double> e)
@@ -727,6 +729,11 @@ namespace ExcelConverter
             }
 
             comboBox.SelectedIndex = comboBox.Items.IndexOf(DirFilter.defaultDir);
+        }
+
+        private void OnDirSelect(object sender, SelectionChangedEventArgs e)
+        {
+            DirFilter.SetSelectDir(comboBox.SelectedValue.ToString());
         }
     }
 }

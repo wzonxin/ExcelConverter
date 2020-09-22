@@ -109,9 +109,10 @@ namespace ExcelConverter
 
                     foreach (var excelName in excelNames)
                     {
-                        if (childNode.MatchSearch(excelName))
+                        if (childNode.MatchSearch(excelName) && !DirFilter.IsSkipDir(childNode.Path))
                         {
                             Utils.DebugLog(childNode.Name);
+                            Utils.DebugLog(childNode.Path);
                             childNode.IsOn = true;
                             break;
                         }
