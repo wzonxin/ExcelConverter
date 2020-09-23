@@ -280,8 +280,8 @@ namespace ExcelConverter
             PushCommand(UpdateDr);
             PushCommand(CovertCsv);
             PushCommand(ConvertBin);
-            PushCommand(GC.Collect);
             PushCommand(SaveModifyTime);
+            PushCommand(GC.Collect);
         }
 
         public static void CleanConvert()
@@ -432,11 +432,14 @@ if exist build_info.log (del build_info.log)
         /// <param name="action">操作的Action</param>
         private static void PushCommand(Action action)
         {
-            if (_cmdQueue.Count == 0)
+            if (_curProcess == null)
             {
                 action();
             }
-            _cmdQueue.Enqueue(action);
+            else
+            {
+                _cmdQueue.Enqueue(action);
+            }
         }
 
         private static Process _curProcess;
@@ -478,8 +481,6 @@ if exist build_info.log (del build_info.log)
 
         private static void NextCommand()
         {
-            if (_cmdQueue.Count > 0)
-                _cmdQueue.Dequeue();
             if (_cmdQueue.Count > 0)
             {
                 var cmdAction = _cmdQueue.Dequeue();
@@ -632,12 +633,11 @@ if exist build_info.log (del build_info.log)
                 }
             }
             return sheetNames;
-
         }
 
         private static void SaveModifyTime()
         {
-            Utils.DebugPrettyLog("SaveModifyTime start...");
+            Utils.DebugPrettyLog("转表完成");
             string lastConvTimeTxt = WorkingPath + "\\last_conv_time.txt";
             if (!File.Exists(lastConvTimeTxt))
                 return;
