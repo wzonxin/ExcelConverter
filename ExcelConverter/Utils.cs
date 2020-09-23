@@ -271,11 +271,13 @@ namespace ExcelConverter
 
         public static void ConvertExcel(List<TreeNode> convertList)
         {
+            Utils.DebugPrettyLog("ConvertExcel start ...");
             List<string> pathList = new List<string>();
             GetBatCmd();
 
             ConvertToPath(convertList, pathList);
             CopyXlsToTmpDir(pathList);
+            PushCommand(UpdateDr);
             PushCommand(CovertCsv);
             PushCommand(ConvertBin);
             PushCommand(GC.Collect);
@@ -357,12 +359,20 @@ md .\csv
 
         private static void CovertCsv()
         {
+            Utils.DebugPrettyLog("CovertCsv start...");
             string middle = WorkingPath + "\\x2c\\xls2csv " + (WorkingPath + "\\xls_tmp\\ ") + (WorkingPath + "\\csv " + WorkingPath + "\\x2c.x2c\r\n\r\n");
             ExecuteBatCommand(middle);
+        }
+        private static void UpdateDr()
+        {
+            Utils.DebugPrettyLog("UpdateDr start...");
+            string cmd = "call up_dr.bat";
+            ExecuteBatCommand(cmd);
         }
 
         private static void ConvertBin()
         {
+            Utils.DebugPrettyLog("ConvertBin start...");
             var prefix = @"set path=C:\Windows\System32;%path%" +
                      GetEnterDirStr();
             var csvList = Directory.GetFiles($"{WorkingPath}\\csv", "*.csv");
@@ -378,8 +388,8 @@ md .\bin_cli
 
 if exist build_err.log (del build_err.log)
 if exist build_info.log (del build_info.log)
-
-call SshGenXml.exe " + $"{svnUser} {svnPassword} {serverFolder}\r\n\r\n";
+";
+//call SshGenXml.exe " + $"{svnUser} {svnPassword} {serverFolder}\r\n\r\n";
             var lineIndexList = new List<int>();
             for (int fileIdx = 0; fileIdx < csvList.Length; fileIdx++)
             {
@@ -627,6 +637,7 @@ call SshGenXml.exe " + $"{svnUser} {svnPassword} {serverFolder}\r\n\r\n";
 
         private static void SaveModifyTime()
         {
+            Utils.DebugPrettyLog("SaveModifyTime start...");
             string lastConvTimeTxt = WorkingPath + "\\last_conv_time.txt";
             if (!File.Exists(lastConvTimeTxt))
                 return;
@@ -775,6 +786,15 @@ call SshGenXml.exe " + $"{svnUser} {svnPassword} {serverFolder}\r\n\r\n";
         public static void DebugLog(string outputLog)
         {
             EventDispatcher.SendEvent(TaskType.ConvertOutput, outputLog);
+        }
+
+        public static void DebugPrettyLog(string outputLog)
+        {
+            string prettyLogBefore = "####################################################\n";
+            string prettyLogAfter = "\n" + prettyLogBefore;
+            string prettyLogPre = "#  ";
+
+            EventDispatcher.SendEvent(TaskType.ConvertOutput, prettyLogBefore + prettyLogPre + outputLog + prettyLogAfter);
         }
     }
 }

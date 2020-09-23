@@ -262,12 +262,13 @@ namespace ExcelConverter
 
         private void DoConvert(List<TreeNode> nodeList)
         {
-            Utils.ConvertExcel(nodeList);
-
             ConvertDialog dlg = new ConvertDialog();
             dlg.Owner = this;
             dlg.OnClosedEvent += Utils.CleanConvert;
-            dlg.ShowDialog();
+            dlg.Show();
+
+            Utils.ConvertExcel(nodeList);
+
         }
 
         private void SearchTextChange(object sender, TextChangedEventArgs e)

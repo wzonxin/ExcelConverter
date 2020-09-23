@@ -7,6 +7,7 @@
         xmlns:sys="clr-namespace:System;assembly=System.Runtime"
         mc:Ignorable="d"
         Title="转表GUI" Height="589" Width="800"
+        
         Loaded="OnWindowLoaded"
         Closed="OnWindowClosed"
         Deactivated="OnWindowDeactivated">
