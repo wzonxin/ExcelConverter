@@ -46,7 +46,7 @@ namespace ExcelConverter
             InitComboBox();
 
             _timer = new System.Windows.Threading.DispatcherTimer();
-            _timer.Interval = TimeSpan.FromMilliseconds(100);
+            _timer.Interval = TimeSpan.FromMilliseconds(1);
             // Set the callback to just show the time ticking away
             // NOTE: We are using a control so this has to run on 
             // the UI thread
