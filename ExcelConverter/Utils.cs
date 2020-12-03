@@ -360,7 +360,7 @@ md .\csv
         private static void CovertCsv()
         {
             Utils.DebugPrettyLog("CovertCsv start...");
-            string middle = WorkingPath + "\\x2c\\xls2csv " + (WorkingPath + "\\xls_tmp\\ ") + (WorkingPath + "\\csv " + WorkingPath + "\\x2c.x2c\r\n\r\n");
+            string middle = WorkingPath + "\\Excel2Csv.exe ";
             ExecuteBatCommand(middle);
         }
         private static void UpdateDr()
