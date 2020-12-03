@@ -6,27 +6,78 @@
         xmlns:local="clr-namespace:ExcelConverter"
         xmlns:sys="clr-namespace:System;assembly=System.Runtime"
         mc:Ignorable="d"
-        Title="转表GUI" Height="589" Width="800"
+        Title="转表GUI" Height="800" Width="800"
         
         Loaded="OnWindowLoaded"
         Closed="OnWindowClosed"
         Deactivated="OnWindowDeactivated">
-    <Grid>
-        <Button x:Name="ConvertBtn" Content="开始转表" HorizontalAlignment="Left" Height="47" Margin="14,12,0,0" VerticalAlignment="Top" Width="78" Click="Convert"/>
-        <Button x:Name="SettingBtn" Content="设置" Foreground="DarkGoldenrod" Background="Beige" HorizontalAlignment="Left" Height="20" Margin="761,62,0,0" VerticalAlignment="Top" Width="30" Click="OnSettingClick"/>
-        <Button x:Name="CheckBtn" Content="一键修复"  Background="Beige" HorizontalAlignment="Right" Height="21" Margin="0,37,613,0" VerticalAlignment="Top" Width="76" Click="OnCheckClick" RenderTransformOrigin="-4.944,0.538"/>
-        <Button x:Name="OneKeyAddConvertBtn" Content="一键快转"  Foreground="DarkGoldenrod" Background="Beige" HorizontalAlignment="Right" Height="21" Margin="0,11,612,0" VerticalAlignment="Top" Width="76" Click="OneKeyAdd" RenderTransformOrigin="0.233,0.488"/>
-        <Button x:Name="ScanBtn" Content="扫描文件夹" HorizontalAlignment="Left" Height="20" Margin="463,13,0,0" VerticalAlignment="Top" Width="100" Click="ScanDir" ToolTip="新增表格后，要重新扫描" RenderTransformOrigin="-0.121,0.638"/>
-        <Button x:Name="OpenSearchBinBtn" Content="查报错表" Click="OpenSearchBinPopup" HorizontalAlignment="Right" Height="18" Margin="0,47,168,0" VerticalAlignment="Top" Width="60" Background="Tomato" Foreground="Bisque"/>
-        <ProgressBar x:Name="ScanProgressBar"  HorizontalAlignment="Left" Height="10" Width="70" Margin="647,51,0,0" VerticalAlignment="Top" ValueChanged="ScanProgressBar_ValueChanged"/>
-        <Label x:Name="ScanLabel" Content="" HorizontalAlignment="Left" Height="24" Margin="494,16,0,0" VerticalAlignment="Top" FontSize="10.667" VerticalContentAlignment="Center" HorizontalContentAlignment="Left" Width="276" Foreground="#FF00C146"/>
-        <TextBox x:Name="SearchBox" HorizontalAlignment="Right" VerticalAlignment="Top" Margin="0,10,30,0" 
-                 Text="" TextWrapping="Wrap" Width="202" Height="28" TextChanged="SearchTextChange" VerticalContentAlignment="Center" ToolTip="Search Excel"/>
-        <Button x:Name="ClearSearchBtn" Content="X" HorizontalAlignment="Right" Height="16" Margin="0,16,35,0" VerticalAlignment="Top" Width="20" Background="{x:Null}" BorderBrush="White" Padding="0,-1,0,0" Foreground="#FF7C6767" Visibility="Hidden" Click="ClickClearSearchBtn"/>
-        <Label x:Name="ConvertLabel" Content="待转列表：" HorizontalAlignment="Left" Height="24" VerticalAlignment="Top" Width="106" Margin="10,64,0,0"/>
-        <Button x:Name="ClearConvertListBtn" Content="清空" HorizontalAlignment="Left" Height="26" VerticalAlignment="Top" Margin="69,64,0,0" BorderBrush="White" Background="White" Foreground="Red" Width="47" Click="OnClearConvertList"/>
+	<Grid Height="800" Width="800">
+		<WrapPanel Orientation="Horizontal" Width="100" Height="70" Margin="-670,10,0,0" VerticalAlignment="Top">
+			<Button x:Name="ConvertBtn" Content="开始转表" FontWeight="Bold" FontFamily="仿宋" FontSize="22" Width="100" Height="70" Background="#91BFBF" Foreground="White" Click="Convert">
+				<Button.Template >
+					<ControlTemplate TargetType="{x:Type Button}" >
+						<Border BorderBrush="{TemplateBinding Control.BorderBrush}" BorderThickness="1" CornerRadius="7,7,7,7">
+							<Border.Background>#979C9C</Border.Background>
+							<ContentPresenter Content="{TemplateBinding ContentControl.Content}" HorizontalAlignment="Center" VerticalAlignment="Center" ></ContentPresenter>
+						</Border>
+					</ControlTemplate>
+				</Button.Template>
+			</Button>
+		</WrapPanel>
+		<WrapPanel Orientation="Horizontal" Margin="120,10,0,0" Height="70" Width="650" VerticalAlignment="Top">
+			<Label x:Name="OnDirSelectLabel" Content="运营目录选择(必选)：" FontSize="14" Height="30" Padding="0,5,0,0" />
+			<ComboBox x:Name="comboBox" Width="120" SelectionChanged="OnDirSelect"></ComboBox>
+			<Label x:Name="HideLabel1" Content="实用功能：" FontSize="14" Padding="20,5,0,0" />
+			<Button x:Name="OneKeyAddConvertBtn" Content="添加所有有修改的表格" Padding="10,0,10,0" Width="200" FontSize="14" Height="28" Background="#91BFBF" Foreground="White" Click="OneKeyAdd">
+				<Button.Template >
+					<ControlTemplate TargetType="{x:Type Button}" >
+						<Border BorderBrush="{TemplateBinding Control.BorderBrush}" BorderThickness="1" CornerRadius="7,7,7,7">
+							<Border.Background>#979C9C</Border.Background>
+							<ContentPresenter Content="{TemplateBinding ContentControl.Content}" HorizontalAlignment="Center" VerticalAlignment="Center" ></ContentPresenter>
+						</Border>
+					</ControlTemplate>
+				</Button.Template>
+			</Button>
+			<Button x:Name="CheckBtn" Content="添加出错表格" Padding="5,0,5,0" Foreground="DarkGoldenrod" FontSize="14" Background="Beige" Visibility="Hidden" Click="OnCheckClick" />
+			<Line Stretch="Fill" Stroke="Gray" X2="1" Margin="0,5,0,0"/>
+			<Label x:Name="HideLabe5" Content="--" Width="650" Height="5" Visibility="Hidden" />
+			<Label x:Name="HideLabel2" Content="sheet表名模糊查询：" FontSize="14" Height="30" Padding="0,5,0,0" />
+			<TextBox x:Name="SearchBox" Text="" TextWrapping="Wrap" Width="120" TextChanged="SearchTextChange" ToolTip="Search Excel"/>
+			<Label x:Name="HideLabel3" Content="sheet表名（英文）模糊查询：" FontSize="14" Padding="20,5,0,0" />
+			<Button x:Name="OpenSearchBinBtn" Content="英文查询" FontSize="14" Width="120" Height="28" Click="OpenSearchBinPopup" Background="#91BFBF" Foreground="White">
+				<Button.Template >
+					<ControlTemplate TargetType="{x:Type Button}" >
+						<Border BorderBrush="{TemplateBinding Control.BorderBrush}" BorderThickness="1" CornerRadius="7,7,7,7">
+							<Border.Background>#979C9C</Border.Background>
+							<ContentPresenter Content="{TemplateBinding ContentControl.Content}" HorizontalAlignment="Center" VerticalAlignment="Center" ></ContentPresenter>
+						</Border>
+					</ControlTemplate>
+				</Button.Template>
+			</Button>
+		</WrapPanel>
 
-        <Border x:Name="CovertListBorder" BorderBrush="Black" Height="79" VerticalAlignment="Top" Margin="10,94,9,0" BorderThickness="1,1,1,1" >
+		<WrapPanel Orientation="Horizontal" Margin="10,90,0,0" Height="30" VerticalAlignment="Top">
+			<Button x:Name="ConvertLabel" Content="待转列表：" FontSize="14" BorderBrush="White" Click="ScanDir" ToolTip="新增表格后，要重新扫描" />
+			<Button x:Name="ClearConvertListBtn" Content="清空" FontSize="14" BorderBrush="White" Background="White" Foreground="Red" Click="OnClearConvertList"/>
+
+			<Label x:Name="HideLabel" Content="-----------------------------------------------------" Visibility="Hidden" />
+			<Button x:Name="ScanBtn" Content="新增表格后，重新扫描文件夹" Width="220" FontSize="14" Background="#91BFBF" Foreground="White" Click="ScanDir" ToolTip="新增表格后，要重新扫描" >
+				<Button.Template >
+					<ControlTemplate TargetType="{x:Type Button}" >
+						<Border BorderBrush="{TemplateBinding Control.BorderBrush}" BorderThickness="1" CornerRadius="7,7,7,7">
+							<Border.Background>#979C9C</Border.Background>
+							<ContentPresenter Content="{TemplateBinding ContentControl.Content}" HorizontalAlignment="Center" VerticalAlignment="Center" ></ContentPresenter>
+						</Border>
+					</ControlTemplate>
+				</Button.Template>
+			</Button>
+			<ProgressBar x:Name="ScanProgressBar" Margin="5" Height="12" Width="110" ValueChanged="ScanProgressBar_ValueChanged"/>
+			<Label x:Name="ScanLabel" Content=" " FontSize="9" Foreground="#FF00C146"/>
+			<Button x:Name="ClearSearchBtn" Content="X" Background="{x:Null}" BorderBrush="White" Foreground="#FF7C6767" Visibility="Hidden" Click="ClickClearSearchBtn"/>
+			<Button x:Name="SettingBtn" Content="SVN设置" FontSize="12" BorderBrush="White" Click="OnSettingClick" Visibility="Hidden"/>
+		</WrapPanel>
+		
+		<Border x:Name="CovertListBorder" BorderBrush="Black" Height="79" VerticalAlignment="Top" Margin="10,120,9,0" BorderThickness="1,1,1,1" >
             <Border.Style>
                 <Style>
                     <Setter Property="Border.Visibility" Value="Visible" />
@@ -39,13 +90,13 @@
             </Border.Style>
         </Border>
 
-        <ScrollViewer x:Name="ConvertScrollViewer"  Height="78" VerticalAlignment="Top" Margin="10,94,10,0" BorderThickness="1,1,1,1">
+        <ScrollViewer x:Name="ConvertScrollViewer"  Height="78" VerticalAlignment="Top" Margin="10,120,10,0" BorderThickness="1,1,1,1">
             <UniformGrid Columns="6" x:Name="ConvertGrid" Margin="10, 3, 5, 10" VerticalAlignment="Top">
                 <Label Content="空" Height="28" Width="117"/>
             </UniformGrid>
         </ScrollViewer>
-        <Label x:Name="FavLabel" Content="收藏列表：" HorizontalAlignment="Left" Height="24" VerticalAlignment="Top" Width="176" Margin="10,172,0,0"/>
-        <Border x:Name="FavCovertListBorder" BorderBrush="Black" Height="108" VerticalAlignment="Top" Margin="10,199,9,0" BorderThickness="1,1,1,1">
+        <Label x:Name="FavLabel" Content="收藏列表：" HorizontalAlignment="Left" Height="24" VerticalAlignment="Top" Width="176" Margin="10,200,0,0"/>
+        <Border x:Name="FavCovertListBorder" BorderBrush="Black" Height="108" VerticalAlignment="Top" Margin="10,230,9,0" BorderThickness="1,1,1,1">
             <Border.Style>
                 <Style>
                     <Setter Property="UIElement.Visibility" Value="Visible" />
@@ -57,7 +108,7 @@
                 </Style>
             </Border.Style>
         </Border>
-        <ScrollViewer x:Name="FavScrollViewer" Height="106" VerticalAlignment="Top" Margin="10,200,10,0"  BorderThickness="1,1,1,1">
+        <ScrollViewer x:Name="FavScrollViewer" Height="106" VerticalAlignment="Top" Margin="10,230,10,0"  BorderThickness="1,1,1,1">
             <UniformGrid Columns="6" x:Name="FavGrid">
                 <Label Content="空" Height="28" Width="117"/>
             </UniformGrid>
@@ -103,37 +154,35 @@
             </StackPanel>
         </Popup>
 
-        <TreeView Name="DirTreeView"  Margin="10,313,10,0" ItemsSource="{Binding DataSource}">
-            <TreeView.ItemTemplate>
-                <HierarchicalDataTemplate ItemsSource="{Binding Child}" DataType="{x:Type local:TreeNode}">
-                    <WrapPanel>
-                        <CheckBox  Width="20" IsChecked="{Binding IsOn}"/>
-                        <Button Content="{Binding WithSheetName}" Width="Auto" Click="OnTreeItemBtnSelect" Background="{Binding Color}" BorderThickness="0,0,0,0" Tag="{Binding Path}">
-                            <Button.ContextMenu>
-                                <ContextMenu>
-                                    <MenuItem Header="直接转表" Name="MenuItemDirectConvertNode" Click="TreeItemDirectConvert" Tag="{Binding Path}"/>
-                                    <!--<MenuItem Header="添加待转" Name="MenuItemAddConvertNode" Click="TreeItemAddConvert" Tag="{Binding Path}"/>-->
-                                    <MenuItem Header="打开文件夹" Name="MenuItemOpenFolderNode" Click="OpenTreeItemFolder" Tag="{Binding Path}"/>
-                                    <MenuItem Header="添加收藏" Name="MenuItemAddNode" Click="MenuItemAddNodeClick" Tag="{Binding Path}"/>
-                                    <MenuItem Header="删除收藏" Name="MenuItemDeleteNode" Click="MenuItemDeleteNodeClick" Tag="{Binding Path}"/>
-                                </ContextMenu>
-                            </Button.ContextMenu>
-                        </Button>
-                    </WrapPanel>
-                </HierarchicalDataTemplate>
-            </TreeView.ItemTemplate>
+		<TreeView Name="DirTreeView"  Margin="10,340,10,0" ItemsSource="{Binding DataSource}">
+			<TreeView.ItemTemplate>
+				<HierarchicalDataTemplate ItemsSource="{Binding Child}" DataType="{x:Type local:TreeNode}">
+					<WrapPanel>
+						<CheckBox  Width="20" IsChecked="{Binding IsOn}"/>
+						<Button Content="{Binding WithSheetName}" Width="Auto" Click="OnTreeItemBtnSelect" Background="{Binding Color}" BorderThickness="0,0,0,0" Tag="{Binding Path}">
+							<Button.ContextMenu>
+								<ContextMenu>
+									<MenuItem Header="直接转表" Name="MenuItemDirectConvertNode" Click="TreeItemDirectConvert" Tag="{Binding Path}"/>
+									<!--<MenuItem Header="添加待转" Name="MenuItemAddConvertNode" Click="TreeItemAddConvert" Tag="{Binding Path}"/>-->
+									<MenuItem Header="打开文件夹" Name="MenuItemOpenFolderNode" Click="OpenTreeItemFolder" Tag="{Binding Path}"/>
+									<MenuItem Header="添加收藏" Name="MenuItemAddNode" Click="MenuItemAddNodeClick" Tag="{Binding Path}"/>
+									<MenuItem Header="删除收藏" Name="MenuItemDeleteNode" Click="MenuItemDeleteNodeClick" Tag="{Binding Path}"/>
+								</ContextMenu>
+							</Button.ContextMenu>
+						</Button>
+					</WrapPanel>
+				</HierarchicalDataTemplate>
+			</TreeView.ItemTemplate>
 
-            <TreeView.ItemContainerStyle>
-                <Style TargetType="{x:Type TreeViewItem}" BasedOn="{StaticResource {x:Type TreeViewItem}}">
-                    <!--<Setter Property="IsExpanded" Value="True"/>-->
-                    <Setter Property="IsExpanded" Value="{Binding IsExpanded}"/>
-                    <EventSetter Event="Collapsed" Handler="OnTreeViewItemCollapseStateChanged" />
-                    <EventSetter Event="Expanded" Handler="OnTreeViewItemCollapseStateChanged" />
-                </Style>
-            </TreeView.ItemContainerStyle>
-        </TreeView>
-        <ComboBox x:Name="comboBox" HorizontalAlignment="Left" Margin="204,12,0,0" VerticalAlignment="Top" Width="120" SelectionChanged="OnDirSelect"></ComboBox>
+			<TreeView.ItemContainerStyle>
+				<Style TargetType="{x:Type TreeViewItem}" BasedOn="{StaticResource {x:Type TreeViewItem}}">
+					<!--<Setter Property="IsExpanded" Value="True"/>-->
+					<Setter Property="IsExpanded" Value="{Binding IsExpanded}"/>
+					<EventSetter Event="Collapsed" Handler="OnTreeViewItemCollapseStateChanged" />
+					<EventSetter Event="Expanded" Handler="OnTreeViewItemCollapseStateChanged" />
+				</Style>
+			</TreeView.ItemContainerStyle>
+		</TreeView>
 
-
-    </Grid>
+	</Grid>
 </Window>
