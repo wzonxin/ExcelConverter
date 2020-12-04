@@ -13,10 +13,9 @@
         Deactivated="OnWindowDeactivated">
 	<Grid Height="800" Width="800">
 		<Menu FontSize="16">
-			<MenuItem Header="开始转表" Height="30" Width="80" Click="Convert" />
-			<ComboBox x:Name="comboBox" Width="120" SelectionChanged="OnDirSelect" ToolTip="运营目录选择(必选)"/>
+			<MenuItem Header="开始转表" Height="30" Click="Convert" />
 
-			<MenuItem Header="查表工具">
+			<MenuItem Height="30" Header="查表工具">
 				<MenuItem Header="表格模糊查询(英)" Click="OpenSearchBinPopup" />
 				<TextBox x:Name="SearchBox" Text="" TextWrapping="Wrap" Width="280" TextChanged="SearchTextChange" ToolTip="表名模糊查询（中）">
 					<TextBox.Resources>
@@ -41,39 +40,41 @@
 				</TextBox>
 			</MenuItem>
 
-			<MenuItem Header="实用工具">
+			<MenuItem Header="实用工具" Height="30">
 				<MenuItem Header="添加所有有修改的表格" Click="OneKeyAdd"></MenuItem>
 				<MenuItem Header="添加服务器报错表格" Click="OnCheckClick"></MenuItem>
 			</MenuItem>
 
-			<MenuItem Header="修复工具">
+			<MenuItem Header="修复工具" Height="30">
 				<MenuItem Header="重新扫描文件夹"  Click="ScanDir" />
 				<MenuItem Header="停止扫描文件夹"  Click="ClickClearSearchBtn" />
 			</MenuItem>
 
-			<MenuItem Header="配置工具">
+			<MenuItem Header="配置工具" Height="30">
 				<MenuItem Header="SVN配置"  Click="OnSettingClick" />
 			</MenuItem>
 
-			<ProgressBar x:Name="ScanProgressBar" Margin="5" Height="4" Width="200" ValueChanged="ScanProgressBar_ValueChanged"/>
-			<Label x:Name="ScanLabel" Content=" " FontSize="9" Foreground="#FF00C146"/>
+			<MenuItem Header="运营目录选择(必选)-->" Height="30" Width="217" Padding="54,3,0,0" />
+			<ComboBox x:Name="comboBox" Height="30" Width="180" Margin="0,0,0,0" SelectionChanged="OnDirSelect" ToolTip="运营目录选择(必选)"/>
 		</Menu>
 
 		<WrapPanel Orientation="Horizontal" Margin="10,70,0,0" VerticalAlignment="Top">
 			<Button x:Name="ConvertLabel" Content="待转列表：" FontSize="14" BorderBrush="#e8e8e8" Click="ScanDir" ToolTip="新增表格后，要重新扫描" />
-			<Button x:Name="ClearConvertListBtn" Content="清空列表" Margin="625,0,0,0" FontSize="14" BorderBrush="#e8e8e8"  Foreground="Red" Click="OnClearConvertList"/>
+			<ProgressBar x:Name="ScanProgressBar" Margin="114,0,0,0" Width="400" ValueChanged="ScanProgressBar_ValueChanged" Background="#e8e8e8"/>
+			<Label x:Name="ScanLabel" Content=" " Width="80" FontSize="9" Foreground="#FF00C146"/>
+			<Button x:Name="ClearConvertListBtn" Content="清空列表" Margin="30,0,0,0" FontSize="14" BorderBrush="#e8e8e8"  Foreground="Red" Click="OnClearConvertList"/>
 
 		</WrapPanel>
 
 		<ScrollViewer x:Name="ConvertScrollViewer" Background="#e8e8e8" Height="78" VerticalAlignment="Top" Margin="10,90,30,0" BorderThickness="1,1,1,1">
             <UniformGrid Columns="6" x:Name="ConvertGrid" Margin="10, 3, 5, 10" VerticalAlignment="Top">
-                <Label Content="空" Height="28" Width="117"/>
+                <Label Content="列表为空，请先√表格" Height="28" Width="217"/>
             </UniformGrid>
         </ScrollViewer>
 		<Label x:Name="FavLabel" Content="收藏列表：" HorizontalAlignment="Left" Height="30" VerticalAlignment="Top" Width="176" Margin="10,180,0,0"/>
 		<ScrollViewer x:Name="FavScrollViewer" Height="60" VerticalAlignment="Top" Margin="10,200,30,0"  BorderThickness="1,1,1,1">
             <UniformGrid Columns="6" x:Name="FavGrid">
-                <Label Content="空" Height="28" Width="117"/>
+                <Label Content="右键表格即可收藏" Height="28" Width="117"/>
             </UniformGrid>
         </ScrollViewer>
 
