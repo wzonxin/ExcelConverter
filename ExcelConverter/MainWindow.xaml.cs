@@ -280,12 +280,10 @@ namespace ExcelConverter
                 _searchTreeNode = null;
                 Utils.FilterTree(_rootNode, inputText, ref _searchTreeNode);
                 SetTreeSorce(_searchTreeNode);
-                ClearSearchBtn.Visibility = Visibility.Visible;
             }
             else
             {
                 SetTreeSorce(_rootNode);
-                ClearSearchBtn.Visibility = Visibility.Hidden;
             }
         }
 
