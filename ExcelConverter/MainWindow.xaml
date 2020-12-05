@@ -7,146 +7,157 @@
         xmlns:sys="clr-namespace:System;assembly=System.Runtime"
         mc:Ignorable="d"
         Title="转表工具箱" Height="800" Width="800"
-        
+        Background="#ffffff"
         Loaded="OnWindowLoaded"
         Closed="OnWindowClosed"
         Deactivated="OnWindowDeactivated">
 	<Grid Height="800" Width="800">
-		<Menu FontSize="16">
-			<MenuItem Header="开始转表" Height="30" Click="Convert" />
+		<Menu FontSize="16" Background="#ffffff">
+			<MenuItem Header="  开始转表" Height="30" Click="Convert" />
 
-			<MenuItem Height="30" Header="查表工具">
+			<MenuItem Height="30" Header=" 查表 ">
 				<MenuItem Header="表格模糊查询(英)" Click="OpenSearchBinPopup" />
-				<TextBox x:Name="SearchBox" Text="" TextWrapping="Wrap" Width="280" TextChanged="SearchTextChange" ToolTip="表名模糊查询（中）">
-					<TextBox.Resources>
-						<VisualBrush x:Key="HelpBrush" TileMode="None" Opacity="0.3" Stretch="None" AlignmentX="Left">
-							<VisualBrush.Visual>
-								<TextBlock FontStyle="Italic" Text="输入查询的表名(例如文本配置表)"/>
-							</VisualBrush.Visual>
-						</VisualBrush>
-					</TextBox.Resources>
-					<TextBox.Style>
-						<Style TargetType="TextBox">
-							<Style.Triggers>
-								<Trigger Property="Text" Value="{x:Null}">
-									<Setter Property="Background" Value="{StaticResource HelpBrush}"/>
-								</Trigger>
-								<Trigger Property="Text" Value="">
-									<Setter Property="Background" Value="{StaticResource HelpBrush}"/>
-								</Trigger>
-							</Style.Triggers>
-						</Style>
-					</TextBox.Style>
-				</TextBox>
 			</MenuItem>
 
-			<MenuItem Header="实用工具" Height="30">
-				<MenuItem Header="添加所有有修改的表格" Click="OneKeyAdd"></MenuItem>
-				<MenuItem Header="添加服务器报错表格" Click="OnCheckClick"></MenuItem>
+			<MenuItem Header=" 智能选择 " Height="30">
+				<MenuItem Header="自动添加前，请先确定运营目录" ></MenuItem>
+				<ComboBox x:Name="comboBox" Width="220" SelectionChanged="OnDirSelect" ToolTip="运营目录选择(必选)"/>
+				<MenuItem Header="自动添加所有有修改的表格" Click="OneKeyAdd"></MenuItem>
+				<MenuItem Header="自动添加服务器报错表格" Click="OnCheckClick"></MenuItem>
 			</MenuItem>
 
-			<MenuItem Header="修复工具" Height="30">
+			<MenuItem Header=" 修复 " Height="30">
 				<MenuItem Header="重新扫描文件夹"  Click="ScanDir" />
 				<MenuItem Header="停止扫描文件夹"  Click="ClickClearSearchBtn" />
 			</MenuItem>
 
-			<MenuItem Header="配置工具" Height="30">
+			<MenuItem Header=" 配置 " Height="30">
 				<MenuItem Header="SVN配置"  Click="OnSettingClick" />
 			</MenuItem>
 
-			<MenuItem Header="运营目录选择(必选)-->" Height="30" Width="217" Padding="54,3,0,0" />
-			<ComboBox x:Name="comboBox" Height="30" Width="180" Margin="0,0,0,0" SelectionChanged="OnDirSelect" ToolTip="运营目录选择(必选)"/>
+			<MenuItem Header="  清空列表  " Height="30" Foreground="Red" Click="OnClearConvertList" />
+
+			<MenuItem Header=" " Height="30" />
+			<TextBox x:Name="SearchBox" Text="" TextWrapping="Wrap" Width="280" TextChanged="SearchTextChange" ToolTip="表名模糊查询（中）">
+				<TextBox.Resources>
+					<VisualBrush x:Key="HelpBrush" TileMode="None" Opacity="0.3" Stretch="None" AlignmentX="Left">
+						<VisualBrush.Visual>
+							<TextBlock FontStyle="Italic" Text="输入查询的表名(例如文本配置表)"/>
+						</VisualBrush.Visual>
+					</VisualBrush>
+				</TextBox.Resources>
+				<TextBox.Style>
+					<Style TargetType="TextBox">
+						<Style.Triggers>
+							<Trigger Property="Text" Value="{x:Null}">
+								<Setter Property="Background" Value="{StaticResource HelpBrush}"/>
+							</Trigger>
+							<Trigger Property="Text" Value="">
+								<Setter Property="Background" Value="{StaticResource HelpBrush}"/>
+							</Trigger>
+						</Style.Triggers>
+					</Style>
+				</TextBox.Style>
+			</TextBox>
 		</Menu>
+		
+		<TabControl Name="TabControl1" HorizontalAlignment="Left" Height="760" Margin="0,35,0,0" VerticalAlignment="Top" Width="800">
+			<TabItem Header="转表列表" FontSize="14">
+				<Grid Background="#ffffff">
 
-		<WrapPanel Orientation="Horizontal" Margin="10,70,0,0" VerticalAlignment="Top">
-			<Button x:Name="ConvertLabel" Content="待转列表：" FontSize="14" BorderBrush="#e8e8e8" Click="ScanDir" ToolTip="新增表格后，要重新扫描" />
-			<ProgressBar x:Name="ScanProgressBar" Margin="114,0,0,0" Width="400" ValueChanged="ScanProgressBar_ValueChanged" Background="#e8e8e8"/>
-			<Label x:Name="ScanLabel" Content=" " Width="80" FontSize="9" Foreground="#FF00C146"/>
-			<Button x:Name="ClearConvertListBtn" Content="清空列表" Margin="30,0,0,0" FontSize="14" BorderBrush="#e8e8e8"  Foreground="Red" Click="OnClearConvertList"/>
-
-		</WrapPanel>
-
-		<ScrollViewer x:Name="ConvertScrollViewer" Background="#e8e8e8" Height="78" VerticalAlignment="Top" Margin="10,90,30,0" BorderThickness="1,1,1,1">
-            <UniformGrid Columns="6" x:Name="ConvertGrid" Margin="10, 3, 5, 10" VerticalAlignment="Top">
-                <Label Content="列表为空，请先√表格" Height="28" Width="217"/>
-            </UniformGrid>
-        </ScrollViewer>
-		<Label x:Name="FavLabel" Content="收藏列表：" HorizontalAlignment="Left" Height="30" VerticalAlignment="Top" Width="176" Margin="10,180,0,0"/>
-		<ScrollViewer x:Name="FavScrollViewer" Height="60" VerticalAlignment="Top" Margin="10,200,30,0"  BorderThickness="1,1,1,1">
-            <UniformGrid Columns="6" x:Name="FavGrid">
-                <Label Content="右键表格即可收藏" Height="28" Width="117"/>
-            </UniformGrid>
-        </ScrollViewer>
-
-        <Popup Name="SearchBinPopup" Placement="Center" HorizontalOffset="0" VerticalOffset="0" AllowsTransparency="True" Margin="0,-10">
-            <StackPanel Background="AntiqueWhite">
-                <TextBox x:Name="SearchBinBox" Text="" Margin="10,10,10,10" TextWrapping="Wrap" Width="202" Height="28" TextChanged="SearchBinTextChange" VerticalContentAlignment="Center">
-                    <TextBox.Style>
-                        <Style TargetType="TextBox">
-                            <Style.Resources>
-                                <VisualBrush x:Key="CueBannerBrush" AlignmentX="Left" AlignmentY="Center" Stretch="None">
-                                    <VisualBrush.Visual>
-                                        <Label Content="输入资源容器名字(例如TextConfig)" Foreground="Black" />
-                                    </VisualBrush.Visual>
-                                </VisualBrush>
-                            </Style.Resources>
-                            <Style.Triggers>
-                                <Trigger Property="Text" Value="{x:Static sys:String.Empty}">
-                                    <Setter Property="Background" Value="{StaticResource CueBannerBrush}" />
-                                </Trigger>
-                                <Trigger Property="Text" Value="{x:Null}">
-                                    <Setter Property="Background" Value="{StaticResource CueBannerBrush}" />
-                                </Trigger>
-                                <Trigger Property="IsKeyboardFocused" Value="True">
-                                    <Setter Property="Background" Value="White" />
-                                </Trigger>
-                            </Style.Triggers>
-                        </Style>
-                    </TextBox.Style>
-                </TextBox>
-                <ListView Background="AntiqueWhite" Name="BinResultList" Width="300" Height="460">
-                    <ListView.ItemTemplate>
-                        <DataTemplate DataType="local:BinListNode">
-                            <WrapPanel>
-                                <Button Height="20" Width="Auto" Content="{Binding FullName}" Tag="{Binding SheetName}" ToolTip="{Binding FullName}" Click="CopyExcelName"></Button>
-                            </WrapPanel>
-                        </DataTemplate>
-                    </ListView.ItemTemplate>
-                </ListView>
-                <TextBlock Height="18" HorizontalAlignment="Center" Padding="0, 2, 0, 0">点击搜索结果按钮可复制表格名</TextBlock>
-                <Button Click="HidePopupClick" Height="50" Background="Firebrick">关闭</Button>
-            </StackPanel>
-        </Popup>
-
-		<TreeView Name="DirTreeView"  Margin="10,280,30,60" ItemsSource="{Binding DataSource}">
-			<TreeView.ItemTemplate>
-				<HierarchicalDataTemplate ItemsSource="{Binding Child}" DataType="{x:Type local:TreeNode}">
-					<WrapPanel>
-						<CheckBox  Width="20" IsChecked="{Binding IsOn}"/>
-						<Button Content="{Binding WithSheetName}" Width="Auto" Click="OnTreeItemBtnSelect" Background="{Binding Color}" BorderThickness="0,0,0,0" Tag="{Binding Path}">
-							<Button.ContextMenu>
-								<ContextMenu>
-									<MenuItem Header="直接转表" Name="MenuItemDirectConvertNode" Click="TreeItemDirectConvert" Tag="{Binding Path}"/>
-									<!--<MenuItem Header="添加待转" Name="MenuItemAddConvertNode" Click="TreeItemAddConvert" Tag="{Binding Path}"/>-->
-									<MenuItem Header="打开文件夹" Name="MenuItemOpenFolderNode" Click="OpenTreeItemFolder" Tag="{Binding Path}"/>
-									<MenuItem Header="添加收藏" Name="MenuItemAddNode" Click="MenuItemAddNodeClick" Tag="{Binding Path}"/>
-									<MenuItem Header="删除收藏" Name="MenuItemDeleteNode" Click="MenuItemDeleteNodeClick" Tag="{Binding Path}"/>
-								</ContextMenu>
-							</Button.ContextMenu>
-						</Button>
+					<WrapPanel Orientation="Horizontal" Margin="0,680,0,0" VerticalAlignment="Top">
+						<ProgressBar x:Name="ScanProgressBar" Margin="0,0,0,0" Height="8" Width="700" ValueChanged="ScanProgressBar_ValueChanged" Background="#e8e8e8"/>
+						<Label x:Name="ScanLabel" Content=" " Width="80" FontSize="9" Foreground="#FF00C146"/>
 					</WrapPanel>
-				</HierarchicalDataTemplate>
-			</TreeView.ItemTemplate>
 
-			<TreeView.ItemContainerStyle>
-				<Style TargetType="{x:Type TreeViewItem}" BasedOn="{StaticResource {x:Type TreeViewItem}}">
-					<!--<Setter Property="IsExpanded" Value="True"/>-->
-					<Setter Property="IsExpanded" Value="{Binding IsExpanded}"/>
-					<EventSetter Event="Collapsed" Handler="OnTreeViewItemCollapseStateChanged" />
-					<EventSetter Event="Expanded" Handler="OnTreeViewItemCollapseStateChanged" />
-				</Style>
-			</TreeView.ItemContainerStyle>
-		</TreeView>
+					<ScrollViewer x:Name="ConvertScrollViewer" Background="#ffffff" Height="150" VerticalAlignment="Top" Margin="0,0,30,0" BorderThickness="1,1,1,1">
+						<UniformGrid Columns="6" x:Name="ConvertGrid" Margin="10, 0, 0, 0" VerticalAlignment="Top">
+							<Label Content="请√选表格" Height="30" Width="120"/>
+						</UniformGrid>
+					</ScrollViewer>
+
+					<Popup Name="SearchBinPopup" Placement="Center" HorizontalOffset="0" VerticalOffset="0" AllowsTransparency="True" Margin="0,-10">
+						<StackPanel Background="AntiqueWhite">
+							<TextBox x:Name="SearchBinBox" Text="" Margin="10,10,10,10" TextWrapping="Wrap" Width="202" Height="28" TextChanged="SearchBinTextChange" VerticalContentAlignment="Center">
+								<TextBox.Style>
+									<Style TargetType="TextBox">
+										<Style.Resources>
+											<VisualBrush x:Key="CueBannerBrush" AlignmentX="Left" AlignmentY="Center" Stretch="None">
+												<VisualBrush.Visual>
+													<Label Content="输入资源容器名字(例如TextConfig)" Foreground="Black" />
+												</VisualBrush.Visual>
+											</VisualBrush>
+										</Style.Resources>
+										<Style.Triggers>
+											<Trigger Property="Text" Value="{x:Static sys:String.Empty}">
+												<Setter Property="Background" Value="{StaticResource CueBannerBrush}" />
+											</Trigger>
+											<Trigger Property="Text" Value="{x:Null}">
+												<Setter Property="Background" Value="{StaticResource CueBannerBrush}" />
+											</Trigger>
+											<Trigger Property="IsKeyboardFocused" Value="True">
+												<Setter Property="Background" Value="White" />
+											</Trigger>
+										</Style.Triggers>
+									</Style>
+								</TextBox.Style>
+							</TextBox>
+							<ListView Background="AntiqueWhite" Name="BinResultList" Width="300" Height="460">
+								<ListView.ItemTemplate>
+									<DataTemplate DataType="local:BinListNode">
+										<WrapPanel>
+											<Button Height="20" Width="Auto" Content="{Binding FullName}" Tag="{Binding SheetName}" ToolTip="{Binding FullName}" Click="CopyExcelName"></Button>
+										</WrapPanel>
+									</DataTemplate>
+								</ListView.ItemTemplate>
+							</ListView>
+							<TextBlock Height="18" HorizontalAlignment="Center" Padding="0, 2, 0, 0">点击搜索结果按钮可复制表格名</TextBlock>
+							<Button Click="HidePopupClick" Height="50" Background="Firebrick">关闭</Button>
+						</StackPanel>
+					</Popup>
+
+					<TreeView Name="DirTreeView"  Margin="0,150,30,40" ItemsSource="{Binding DataSource}">
+						<TreeView.ItemTemplate>
+							<HierarchicalDataTemplate ItemsSource="{Binding Child}" DataType="{x:Type local:TreeNode}">
+								<WrapPanel>
+									<CheckBox  Width="20" IsChecked="{Binding IsOn}"/>
+									<Button Content="{Binding WithSheetName}" Width="Auto" Click="OnTreeItemBtnSelect" Background="{Binding Color}" BorderThickness="0,0,0,0" Tag="{Binding Path}">
+										<Button.ContextMenu>
+											<ContextMenu>
+												<MenuItem Header="直接转表" Name="MenuItemDirectConvertNode" Click="TreeItemDirectConvert" Tag="{Binding Path}"/>
+												<!--<MenuItem Header="添加待转" Name="MenuItemAddConvertNode" Click="TreeItemAddConvert" Tag="{Binding Path}"/>-->
+												<MenuItem Header="打开文件夹" Name="MenuItemOpenFolderNode" Click="OpenTreeItemFolder" Tag="{Binding Path}"/>
+												<MenuItem Header="添加收藏" Name="MenuItemAddNode" Click="MenuItemAddNodeClick" Tag="{Binding Path}"/>
+												<MenuItem Header="删除收藏" Name="MenuItemDeleteNode" Click="MenuItemDeleteNodeClick" Tag="{Binding Path}"/>
+											</ContextMenu>
+										</Button.ContextMenu>
+									</Button>
+								</WrapPanel>
+							</HierarchicalDataTemplate>
+						</TreeView.ItemTemplate>
+
+						<TreeView.ItemContainerStyle>
+							<Style TargetType="{x:Type TreeViewItem}" BasedOn="{StaticResource {x:Type TreeViewItem}}">
+								<!--<Setter Property="IsExpanded" Value="True"/>-->
+								<Setter Property="IsExpanded" Value="{Binding IsExpanded}"/>
+								<EventSetter Event="Collapsed" Handler="OnTreeViewItemCollapseStateChanged" />
+								<EventSetter Event="Expanded" Handler="OnTreeViewItemCollapseStateChanged" />
+							</Style>
+						</TreeView.ItemContainerStyle>
+					</TreeView>
+				</Grid>
+			</TabItem>
+			<TabItem Header="收藏列表" FontSize="14">
+				<Grid>
+					<ScrollViewer x:Name="FavScrollViewer" Background="#ffffff" Height="650" VerticalAlignment="Top" Margin="0,0,30,0"  BorderThickness="1,1,1,1">
+						<UniformGrid Columns="6" x:Name="FavGrid">
+
+						</UniformGrid>
+					</ScrollViewer>
+					<Label Content="右键表格即可收藏" Height="30" Width="125" Margin="0,620,30,0"/>
+				</Grid>
+			</TabItem>
+		</TabControl>
 
 	</Grid>
 </Window>
