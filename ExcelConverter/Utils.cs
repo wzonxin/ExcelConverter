@@ -29,7 +29,8 @@ namespace ExcelConverter
 
             string path = "";
 #if DEBUG
-            path = Environment.CurrentDirectory;
+            //path = Environment.CurrentDirectory;
+            path = "C:\\Work\\data";
 #else
             path = Environment.CurrentDirectory;
 #endif
@@ -357,8 +358,12 @@ md .\csv
 
         private static void CovertCsv()
         {
-            string middle = WorkingPath + "\\x2c\\xls2csv " + (WorkingPath + "\\xls_tmp\\ ") + (WorkingPath + "\\csv " + WorkingPath + "\\x2c.x2c\r\n\r\n");
-            ExecuteBatCommand(middle);
+            //string middle = WorkingPath + "\\x2c\\xls2csv " + (WorkingPath + "\\xls_tmp\\ ") + (WorkingPath + "\\csv " + WorkingPath + "\\x2c.x2c\r\n\r\n");
+            string enterDisk = WorkingPath.Substring(0, 2);
+            string cdCmd = "cd " + WorkingPath;
+            string convert = "Excel2Csv.exe ";
+            string finalCmd = string.Format("{0}\n{1}\n{2}", enterDisk, cdCmd, convert);
+            ExecuteBatCommand(finalCmd);
         }
 
         private static void ConvertBin()
@@ -422,11 +427,14 @@ call SshGenXml.exe " + $"{svnUser} {svnPassword} {serverFolder}\r\n\r\n";
         /// <param name="action">操作的Action</param>
         private static void PushCommand(Action action)
         {
-            if (_cmdQueue.Count == 0)
+            if (_curProcess == null)
             {
                 action();
             }
-            _cmdQueue.Enqueue(action);
+            else
+            {
+                _cmdQueue.Enqueue(action);
+            }
         }
 
         private static Process _curProcess;
@@ -468,8 +476,6 @@ call SshGenXml.exe " + $"{svnUser} {svnPassword} {serverFolder}\r\n\r\n";
 
         private static void NextCommand()
         {
-            if (_cmdQueue.Count > 0)
-                _cmdQueue.Dequeue();
             if (_cmdQueue.Count > 0)
             {
                 var cmdAction = _cmdQueue.Dequeue();
