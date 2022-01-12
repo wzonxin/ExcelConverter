@@ -12,10 +12,11 @@
     <ApplicationIcon>favicon-20191227083646338.ico</ApplicationIcon>
     <Win32Resource />
     <NoWin32Manifest>true</NoWin32Manifest>
+	<SatelliteResourceLanguages>zh-Hans</SatelliteResourceLanguages>
   </PropertyGroup>
 
   <ItemGroup>
-    <PackageReference Include="DotNetCore.NPOI" Version="1.2.2" />
+    <PackageReference Include="ExcelDataReader" Version="3.6.0" />
     <PackageReference Include="System.Text.Encoding.CodePages" Version="4.7.0" />
   </ItemGroup>
   <ItemGroup>

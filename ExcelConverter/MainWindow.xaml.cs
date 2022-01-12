@@ -69,6 +69,7 @@ namespace ExcelConverter
             EventDispatcher.RegdEvent<string>(TaskType.SearchError, OnSearchError);
             EventDispatcher.RegdEvent<float>(TaskType.UpdateSearchProgress, UpdateProgress);
             EventDispatcher.RegdEvent<TreeNode>(TaskType.FinishedSearch, OnFinishedSearch);
+            EventDispatcher.RegdEvent(TaskType.ConvertFinishWithFailed, OnConvertFinishWithFailed);
             EventDispatcher.RegdEvent<TreeNode>(TaskType.NodeCheckedChanged, NodeCheckedChanged);
         }
 
@@ -265,10 +266,10 @@ namespace ExcelConverter
             ConvertDialog dlg = new ConvertDialog();
             dlg.Owner = this;
             dlg.OnClosedEvent += Utils.CleanConvert;
+            _dlg = dlg;
             dlg.Show();
 
-            Utils.ConvertExcel(nodeList);
-
+            Utils.ConvertExcel(nodeList, true);
         }
 
         private void SearchTextChange(object sender, TextChangedEventArgs e)
@@ -338,6 +339,19 @@ namespace ExcelConverter
             SearchTextChange(null, null);
 
             MessageBox.Show("扫描完成");
+        }
+
+        private void OnConvertFinishWithFailed()
+        {
+            var result = MessageBox.Show("转表报错，同步DR并重新转表？");
+            if (result == MessageBoxResult.Yes)
+            {
+                if (_dlg != null)
+                {
+                    _dlg.Close();
+                }
+                DoConvert(_convertList);
+            }
         }
 
         private void OnSearchError(string errorStr)
@@ -674,6 +688,7 @@ namespace ExcelConverter
         private DateTime _lastParseTime;
         private List<BinListNode> _cacheBinList = new List<BinListNode>();
         private TreeNode _searchTreeNode;
+        private ConvertDialog _dlg;
 
         private void SearchBin(string searchBinName, List<BinListNode> resultList)
         {

@@ -9,6 +9,7 @@ namespace ExcelConverter
         FinishedSearch,
         NodeCheckedChanged,
         ConvertOutput,
+        ConvertFinishWithFailed,
     }
 
     interface ITask

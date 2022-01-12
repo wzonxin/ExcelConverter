@@ -4,8 +4,8 @@ using System.Diagnostics;
 using System.IO;
 using System.Text;
 using System.Text.Json;
-using NPOI.SS.UserModel;
-using NPOI.XSSF.UserModel;
+using System.Text.RegularExpressions;
+using ExcelDataReader;
 
 namespace ExcelConverter
 {
@@ -31,6 +31,7 @@ namespace ExcelConverter
 #if DEBUG
             path = Environment.CurrentDirectory;
 #else
+            Environment.CurrentDirectory = Environment.CurrentDirectory + @"\..\";
             path = Environment.CurrentDirectory;
 #endif
             Utils.WorkingPath = path;
@@ -269,7 +270,7 @@ namespace ExcelConverter
             return list;
         }
 
-        public static void ConvertExcel(List<TreeNode> convertList)
+        public static void ConvertExcel(List<TreeNode> convertList, bool upDr)
         {
             Utils.DebugPrettyLog("ConvertExcel start ...");
             List<string> pathList = new List<string>();
@@ -277,11 +278,30 @@ namespace ExcelConverter
 
             ConvertToPath(convertList, pathList);
             CopyXlsToTmpDir(pathList);
+            
+
             PushCommand(UpdateDr);
             PushCommand(CovertCsv);
             PushCommand(ConvertBin);
             PushCommand(SaveModifyTime);
             PushCommand(GC.Collect);
+        }
+
+        private static void CheckFailed()
+        {
+            bool haveFailed = false;
+
+            string path = @"build_err.log";
+            if (File.Exists(path))
+            {
+                var lines = File.ReadAllLines(path);
+                haveFailed = lines.Length > 0;
+            }
+
+            if (haveFailed)
+            {
+                EventDispatcher.SendEvent(TaskType.ConvertFinishWithFailed);
+            }
         }
 
         public static void CleanConvert()
@@ -366,7 +386,29 @@ md .\csv
         private static void UpdateDr()
         {
             Utils.DebugPrettyLog("UpdateDr start...");
-            string cmd = "call up_dr.bat";
+            string cmd = "";
+
+            string svnUser, svnPassword, serverFolder;
+            bool upDr;
+            ReadSvnInfo(out svnUser, out svnPassword, out serverFolder, out upDr);
+
+            if (upDr)
+            {
+                if (!string.IsNullOrEmpty(svnUser) && !string.IsNullOrEmpty(svnPassword) &&
+                    !string.IsNullOrEmpty(serverFolder))
+                {
+                    cmd = "call SshGenXml.exe " + $"{svnUser} {svnPassword} {serverFolder}\r\n\r\n";
+                }
+                else
+                {
+                    cmd = "call up_dr.bat";
+                }
+            }
+            else
+            {
+                cmd = "call echo not up dr";
+            }
+
             ExecuteBatCommand(cmd);
         }
 
@@ -376,9 +418,7 @@ md .\csv
             var prefix = @"set path=C:\Windows\System32;%path%" +
                      GetEnterDirStr();
             var csvList = Directory.GetFiles($"{WorkingPath}\\csv", "*.csv");
-
-            string svnUser, svnPassword, serverFolder;
-            ReadSvnInfo(out svnUser, out svnPassword, out serverFolder);
+            
 
             string commandLines = prefix + @"rd /S /Q .\bin
 rd /S /Q .\bin_cli
@@ -623,14 +663,28 @@ if exist build_info.log (del build_info.log)
 
             if (File.Exists(newXlsPath))
             {
-                IWorkbook workbook = new XSSFWorkbook(fileInfo);
-                int sheetCnt = workbook.NumberOfSheets;
-                for (int j = 0; j < sheetCnt; j++)
+                try
                 {
-                    ISheet sheet = workbook.GetSheetAt(j);
-                    var sheetName = sheet.SheetName;
-                    sheetNames.Add(sheetName);
+                    var stream = File.Open(newXlsPath, FileMode.Open, FileAccess.Read);
+                    var reader = ExcelReaderFactory.CreateOpenXmlReader(stream);
+                    do
+                    {
+                        sheetNames.Add(reader.Name);
+                    } while (reader.NextResult());
                 }
+                catch (Exception e)
+                {
+                    Utils.DebugPrettyLog($"读取表格{newXlsPath}失败。{e}");
+                }
+
+                //IWorkbook workbook = new XSSFWorkbook(fileInfo);
+                //int sheetCnt = workbook.NumberOfSheets;
+                //for (int j = 0; j < sheetCnt; j++)
+                //{
+                //    ISheet sheet = workbook.GetSheetAt(j);
+                //    var sheetName = sheet.SheetName;
+                //    sheetNames.Add(sheetName);
+                //}
             }
             return sheetNames;
         }
@@ -706,11 +760,12 @@ if exist build_info.log (del build_info.log)
         }
 
         private static string _svnInfo = "\\svn_info";
-        public static void ReadSvnInfo(out string user, out string password, out string folder)
+        public static void ReadSvnInfo(out string user, out string password, out string folder, out bool drChecked)
         {
             user = string.Empty;
             password = string.Empty;
             folder = string.Empty;
+            drChecked = true;
 
             var path = WorkingPath + _svnInfo;
             if (!File.Exists(path))
@@ -725,11 +780,15 @@ if exist build_info.log (del build_info.log)
             
             if (lines.Length >= 3)
                 folder = lines[2];
+
+            if (lines.Length >= 4)
+                drChecked = int.Parse(lines[3]) > 0;
         }
         
-        public static void SaveSvnInfo(string user, string password, string folder)
+        public static void SaveSvnInfo(string user, string password, string folder, bool drChecked)
         {
-            File.WriteAllText(WorkingPath + _svnInfo, $"{user}\n{password}\n{folder}");
+            string cv = drChecked ? "1" : "0";
+            File.WriteAllText(WorkingPath + _svnInfo, $"{user}\n{password}\n{folder}\n{cv}");
         }
 
         public static string GetFileName(string fullPath)

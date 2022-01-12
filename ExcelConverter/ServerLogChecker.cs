@@ -1,13 +1,8 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Diagnostics;
 using System.IO;
 using System.Text;
-using System.Text.Json;
 using System.Text.RegularExpressions;
-using System.Windows.Shapes;
-using NPOI.SS.UserModel;
-using NPOI.XSSF.UserModel;
 
 namespace ExcelConverter
 {
@@ -29,7 +24,7 @@ namespace ExcelConverter
 
         public static void InitServerLogPath()
         {
-            var PathDefine = File.ReadAllLines(Utils.WorkingPath + "\\" + serverLogPathDefine);
+            var PathDefine = File.ReadAllLines(serverLogPathDefine);
 
             foreach (var line in PathDefine)
             {

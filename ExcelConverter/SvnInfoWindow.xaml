@@ -6,7 +6,7 @@
         xmlns:local="clr-namespace:ExcelConverter"
         mc:Ignorable="d"
         WindowStartupLocation="CenterOwner" 
-        Title="SvnInfoWindow" Width="450" Height="360">
+        Title="SvnInfoWindow" Width="450" Height="380">
 
     <Grid Margin="10,10,10,10">
         <Label Content="程序同步dr 用自己的svn账号。策划可以不用配置" Foreground="DarkGreen" Width="294" Height="30" HorizontalAlignment="Left" HorizontalContentAlignment="Center" VerticalAlignment="Top" Margin="26,10,0,0"></Label>
@@ -20,6 +20,8 @@
         <Label Content="服务器分支 根目录名：" Width="134" Height="30" HorizontalAlignment="Left" VerticalAlignment="Top" Margin="0,169,0,0"/>
         <TextBox Name="ServerFolder" Text="" Height="25"  VerticalAlignment="Top" Margin="140,169,35,0" VerticalContentAlignment="Center" ToolTip="如主线的默认目录名是：server"/>
 
-        <Button Name="SaveSvnInfoBtn" Content="保存" Width="80" Height="30" Margin="150,237,150,18" Click="SaveSvnInfoBtnClick"></Button>
+        <CheckBox Name="DrRadioBtn" Width="134" Height="50" HorizontalAlignment="Left" VerticalAlignment="Top"  Margin="325,14,-29,271" Checked="ChangeToAlwaysUpDr" Unchecked="ChangeToNotAlwaysUpDr">每次同步DR？</CheckBox>
+
+        <Button Name="SaveSvnInfoBtn" HorizontalAlignment="Center" VerticalAlignment="Top" Content="保存" Width="80" Height="30" Margin="0,223,0,0" Click="SaveSvnInfoBtnClick"></Button>
     </Grid>
 </Window>
