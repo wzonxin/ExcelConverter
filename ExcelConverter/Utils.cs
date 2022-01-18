@@ -4,7 +4,6 @@ using System.Diagnostics;
 using System.IO;
 using System.Text;
 using System.Text.Json;
-using System.Text.RegularExpressions;
 using ExcelDataReader;
 
 namespace ExcelConverter
@@ -31,10 +30,21 @@ namespace ExcelConverter
 #if DEBUG
             path = Environment.CurrentDirectory;
 #else
-            Environment.CurrentDirectory = Environment.CurrentDirectory + @"\..\";
-            path = Environment.CurrentDirectory;
+            var exePath = Process.GetCurrentProcess().MainModule.FileName;
+            var dirPath = Path.GetDirectoryName(exePath);
+            if (Directory.Exists(dirPath + "/xls"))
+            {
+                path = dirPath;
+            }
+            else
+            {
+                path = dirPath.Substring(0, dirPath.LastIndexOf("\\"));
+                Environment.CurrentDirectory = path;
+            }
 #endif
             Utils.WorkingPath = path;
+
+            //System.Windows.MessageBox.Show($"Utils.WorkingPath:{Utils.WorkingPath}");
         }
 
         public static void GenFileTree()
@@ -855,5 +865,18 @@ if exist build_info.log (del build_info.log)
 
             EventDispatcher.SendEvent(TaskType.ConvertOutput, prettyLogBefore + prettyLogPre + outputLog + prettyLogAfter);
         }
+
+
+        private static void SaveLogFile()
+        {
+            Utils.DebugPrettyLog("转表完成");
+            string lastConvTimeTxt = WorkingPath + "\\excelconvert.log";
+            if (!File.Exists(lastConvTimeTxt))
+                return;
+
+            var nowTimeStamp = GetLocalDateTimeUtc();
+            File.WriteAllText(lastConvTimeTxt, nowTimeStamp.ToString());
+        }
+
     }
 }

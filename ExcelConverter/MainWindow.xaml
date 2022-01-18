@@ -149,10 +149,14 @@
 			</TabItem>
 			<TabItem Header="收藏列表" FontSize="14">
 				<Grid>
-					<ScrollViewer x:Name="FavScrollViewer" Background="#ffffff" Height="650" VerticalAlignment="Top" Margin="0,0,30,0"  BorderThickness="1,1,1,1">
-						<UniformGrid Columns="6" x:Name="FavGrid">
-
-						</UniformGrid>
+					<ScrollViewer x:Name="FavScrollViewer" Background="#ffffff" Height="670" VerticalAlignment="Top" Margin="0,0,15,0"  BorderThickness="1,1,1,1">
+						<UniformGrid Columns="5" VerticalAlignment="Top" Margin="2, 10, 2, 0" x:Name="FavGrid">
+                            <UniformGrid.Resources>
+                                <Style TargetType="{x:Type Button}">
+                                    <Setter Property="Margin" Value="3"/>
+                                </Style>
+                            </UniformGrid.Resources>
+                        </UniformGrid>
 					</ScrollViewer>
 					<Label Content="右键表格即可收藏" Height="30" Width="125" Margin="0,620,30,0"/>
 				</Grid>
