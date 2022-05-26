@@ -32,12 +32,13 @@ namespace ExcelConverter
 #else
             var exePath = Process.GetCurrentProcess().MainModule.FileName;
             var dirPath = Path.GetDirectoryName(exePath);
-            if (Directory.Exists(dirPath + "/xls"))
+            if (Directory.Exists(dirPath + "\\xls"))
             {
                 path = dirPath;
             }
             else
             {
+                //非单个exe的打包方式
                 path = dirPath.Substring(0, dirPath.LastIndexOf("\\"));
                 Environment.CurrentDirectory = path;
             }
@@ -62,24 +63,42 @@ namespace ExcelConverter
             }
 
             var tmpRootNode = ReadTree();
-            TreeNode rootNode = new TreeNode();
-            ScanSheet(rootNode, xlsPath, NodeType.Dir, tmpRootNode);
+            var dictIndex = NodeToDict(tmpRootNode);
+            TreeNode rootNode = ScanSheet(xlsPath, NodeType.Dir, dictIndex);
             SaveFileTree(rootNode);
             EventDispatcher.SendEvent(TaskType.FinishedSearch, rootNode);
             GC.Collect();
         }
 
-        private static void ScanSheet(TreeNode saveInfoNode, string path, NodeType nodeType, TreeNode tmpRootNode)
+        private static Dictionary<string, TreeNode> NodeToDict(TreeNode rootNode)
         {
+            Dictionary<string, TreeNode> treeDict = new Dictionary<string, TreeNode>();
+            rootNode.Recursive(t =>
+            {
+                treeDict[t.Path] = t;
+            });
+            return treeDict;
+        }
+
+        private static TreeNode ScanSheet(string path, NodeType nodeType, Dictionary<string, TreeNode> tmpRootNode)
+        {
+            TreeNode oldInfoNode;
+            tmpRootNode.TryGetValue(path.Replace(WorkingPath, ""), out oldInfoNode);
+
+            TreeNode saveInfoNode = oldInfoNode;
+            if (saveInfoNode == null)
+            {
+                saveInfoNode = new TreeNode();
+            }
             saveInfoNode.Path = GetRelativePath(path);
             saveInfoNode.Name = GetFileName(path);
-            saveInfoNode.SubSheetName = GetSheetListName(path, nodeType, tmpRootNode);
+            saveInfoNode.SubSheetName = GetSheetListName(path, nodeType, oldInfoNode);
             saveInfoNode.LastTime = DateTime.Now;
 
             if (nodeType == NodeType.File)
             {
                 saveInfoNode.Type = NodeType.File;
-                return;
+                return saveInfoNode;
             }
 
             saveInfoNode.IsExpanded = false;
@@ -90,8 +109,7 @@ namespace ExcelConverter
             List<TreeNode> childNodes = new List<TreeNode>();
             for (int i = 0; i < childDirPath.Length; i++)
             {
-                TreeNode node = new TreeNode();
-                ScanSheet(node, childDirPath[i], NodeType.Dir, tmpRootNode);
+                TreeNode node = ScanSheet(childDirPath[i], NodeType.Dir, tmpRootNode);
                 childNodes.Add(node);
 
                 EventDispatcher.SendEvent(TaskType.UpdateSearchProgress, (i + 1f) / childDirPath.Length);
@@ -99,74 +117,89 @@ namespace ExcelConverter
 
             for (int i = 0; i < files.Length; i++)
             {
-                TreeNode node = new TreeNode();
                 if (files[i].Contains("~$"))
                     continue;
 
-                ScanSheet(node, files[i], NodeType.File, tmpRootNode);
+                TreeNode node = ScanSheet(files[i], NodeType.File, tmpRootNode);
                 childNodes.Add(node);
             }
 
             saveInfoNode.Child = childNodes;
+            return saveInfoNode;
         }
 
-        public static void FilterTree(TreeNode node, string filterStr, ref TreeNode filterNode)
+        private static TreeNode _emptyNode;
+        public static TreeNode SearchTree(TreeNode node, string filterStr)
         {
-            filterNode = CloneTree(node);
-            FilterTree(ref filterNode, filterStr);
-            GC.Collect();
+            var retNode = FilterTree(node, filterStr);
+            if (retNode == null)
+            {
+                if (_emptyNode == null)
+                {
+                    _emptyNode = new TreeNode();
+                    _emptyNode.Child = new List<TreeNode>();
+                }
+                retNode = _emptyNode;
+            }
+            return retNode;
         }
-
-        private static bool FilterTree(ref TreeNode node, string filterStr)
+        
+        private static TreeNode FilterTree(TreeNode node, string filterStr)
         {
-            node.IsExpanded = true;
-            var childs = node.Child;
-            if (childs == null)
-                return false;
+            void AddChildNodeClone(ref TreeNode parentNodeClone1, TreeNode cloneChildNode)
+            {
+                if (parentNodeClone1 == null)
+                {
+                    parentNodeClone1 = node.Clone(false);
+                    parentNodeClone1.IsExpanded = true;
+                    parentNodeClone1.Child = new List<TreeNode>();
+                }
 
+                parentNodeClone1.Child.Add(cloneChildNode);
+            }
+
+            TreeNode cloneParentNode = null;
             //当前文件夹名字匹配上就不用找子文件(夹)了，直接返回
             if (node.Name.Contains(filterStr, StringComparison.OrdinalIgnoreCase))
             {
-                node.IsMatch = true;
-                FindMatchFolderMatchFile(node, filterStr);
-                return true;
+                cloneParentNode = node.Clone();
+                cloneParentNode.IsExpanded = true;
+                cloneParentNode.IsMatch = true;
+                FindMatchFolderMatchFile(cloneParentNode, filterStr);
+                return cloneParentNode;
             }
 
-            bool bFind = false;
+            var childs = node.Child;
+            if (childs == null)
+            {
+                return null;
+            }
+            
             for (int i = 0; i < childs.Count; i++)
             {
                 TreeNode child = childs[i];
                 if (child.IsFile)
                 {
-                    if (!child.MatchSearch(filterStr))
+                    if (child.MatchSearch(filterStr))
                     {
-                        childs.RemoveAt(i);
-                        i--;
-                    }
-                    else
-                    {
-                        child.IsMatch = true;
-                        bFind = true;
+                        var cloneChildNode = child.Clone(false);
+                        cloneChildNode.IsMatch = true;
+
+                        AddChildNodeClone(ref cloneParentNode, cloneChildNode);
                     }
                 }
                 else
                 {
-                    bool res = FilterTree(ref child, filterStr);
-                    if (!res)
+                    TreeNode dirNode = FilterTree(child, filterStr);
+                    if (dirNode != null)
                     {
-                        childs.RemoveAt(i);
-                        i--;
-                    }
-                    else
-                    {
-                        bFind = true;
+                        AddChildNodeClone(ref cloneParentNode, dirNode);
                     }
                 }
             }
-            return bFind;
+            return cloneParentNode;
         }
 
-        //
         private static void FindMatchFolderMatchFile(TreeNode matchNode, string filterStr)
         {
             if (!matchNode.IsFile && matchNode.Child != null)
@@ -644,7 +677,7 @@ if exist build_info.log (del build_info.log)
                 + "cd " + folderPath + "\r\n";
         }
 
-        private static List<string> GetSheetListName(string xlsPath, NodeType nodeType, TreeNode rootNode)
+        private static List<string> GetSheetListName(string xlsPath, NodeType nodeType, TreeNode oldNode)
         {
             if (nodeType != NodeType.File)
             {
@@ -653,11 +686,10 @@ if exist build_info.log (del build_info.log)
 
             List<string> sheetNames = new List<string>();
             FileInfo fileInfo = new FileInfo(xlsPath);
-            var originalNode = rootNode.FindNodeInChild(xlsPath.Replace(WorkingPath, ""));
-            if (originalNode != null && fileInfo.LastWriteTime <= originalNode.LastTime)
+            if (oldNode != null && fileInfo.LastWriteTime <= oldNode.LastTime)
             {
                 //无需重新扫描
-                return originalNode.SubSheetName;
+                return oldNode.SubSheetName;
             }
 
             var newXlsPath = xlsPath;

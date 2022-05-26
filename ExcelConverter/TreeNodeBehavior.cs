@@ -47,7 +47,7 @@ namespace ExcelConverter
             return Type == other.Type && Path == other.Path && Name == other.Name;
         }
 
-        public TreeNode Clone()
+        public TreeNode Clone(bool includeChild = true)
         {
             TreeNode cloneNode = new TreeNode();
             cloneNode.Name = Name;
@@ -58,9 +58,17 @@ namespace ExcelConverter
             {
                 cloneNode.SubSheetName = new List<string>(SubSheetName);
             }
-            if (Child != null)
+
+            if (includeChild)
             {
-                cloneNode.Child = new List<TreeNode>(Child);
+                if (Child != null)
+                {
+                    cloneNode.Child = new List<TreeNode>(Child.Count);
+                    for (var i = 0; i < Child.Count; i++)
+                    {
+                        cloneNode.Child.Add(Child[i].Clone());
+                    }
+                }
             }
             cloneNode.JustSetChecked(IsOn);
             return cloneNode;

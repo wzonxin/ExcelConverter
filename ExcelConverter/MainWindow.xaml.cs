@@ -82,6 +82,7 @@ namespace ExcelConverter
         {
             _timer?.Stop();
             EventDispatcher.Clear();
+            MemPoolMgr.Instance.ClearAllPool();
         }
 
         private void OnWindowDeactivated(object sender, EventArgs e)
@@ -230,7 +231,7 @@ namespace ExcelConverter
         {
             TreeNode rootNode = Utils.ReadTree();
             _rootNode = rootNode;
-            SetTreeSorce(rootNode);
+            SetTreeSource(rootNode);
         }
 
         private void Convert(object sender, RoutedEventArgs e)
@@ -278,22 +279,23 @@ namespace ExcelConverter
             SyncTreeChecked();
             if (!string.IsNullOrEmpty(inputText))
             {
-                _searchTreeNode = null;
-                Utils.FilterTree(_rootNode, inputText, ref _searchTreeNode);
-                SetTreeSorce(_searchTreeNode);
+                _searchTreeNode = Utils.SearchTree(_rootNode, inputText);
+                SetTreeSource(_searchTreeNode);
             }
             else
             {
-                SetTreeSorce(_rootNode);
+                _searchTreeNode = null;
+                SetTreeSource(_rootNode);
             }
+            FuncTabControl.SelectedIndex = 0;
         }
-
+        
         private void ClickClearSearchBtn(object sender, RoutedEventArgs e)
         {
             SearchBox.Text = string.Empty;
         }
 
-        private void SetTreeSorce(TreeNode node)
+        private void SetTreeSource(TreeNode node)
         {
             DataSource = node.Child;
             DirTreeView.ItemsSource = DataSource;
@@ -322,7 +324,7 @@ namespace ExcelConverter
 
         private void ClearToggleNode(TreeNode checkNode)
         {
-            checkNode.Recursive(node => { node.IsOn = false; });
+            checkNode.IsOn = false;
         }
 
         private void UpdateProgress(float value)
@@ -334,7 +336,7 @@ namespace ExcelConverter
         private void OnFinishedSearch(TreeNode node)
         {
             _rootNode = node;
-            SetTreeSorce(node);
+            SetTreeSource(node);
             ScanLabel.Content = "扫描完成";
             SearchTextChange(null, null);
 
@@ -368,7 +370,7 @@ namespace ExcelConverter
             bool inSearch = !string.IsNullOrEmpty(SearchBox.Text);
 
             DirTreeView.ItemsSource = null;
-            SetTreeSorce(treeRootNode);
+            SetTreeSource(treeRootNode);
 
             _convertList.Clear();
 
@@ -377,6 +379,29 @@ namespace ExcelConverter
             {
                 CollectToggleNode(_searchTreeNode);
             }
+
+            _convertList.Sort(Utils.SortList);
+            RefreshConvertList();
+        }
+
+        private void SyncConvert2TreeShow()
+        {
+            _rootNode.Recursive(t =>
+            {
+                t.IsOn = _convertList.Contains(t);
+            });
+        }
+
+        private void SyncTree2ConvertShow()
+        {
+            _convertList.Clear();
+            _rootNode.Recursive(t =>
+            {
+                if (t.IsOn)
+                {
+                    _convertList.Add(t);
+                }
+            });
 
             _convertList.Sort(Utils.SortList);
             RefreshConvertList();
@@ -428,10 +453,10 @@ namespace ExcelConverter
             });
         }
 
-        private void MenuItemAddNodeClick(object sender, RoutedEventArgs e)
+        private void MenuItemAddToFavClick(object sender, RoutedEventArgs e)
         {
             var tag = ((MenuItem)sender).Tag;
-            var node = FindTreeViewNode((string)tag);
+            var node = FindNodeInDataTree((string)tag);
             if (!_favList.Contains(node))
             {
                 _favList.Add(node);
@@ -490,18 +515,18 @@ namespace ExcelConverter
         private void TreeItemDirectConvert(object sender, RoutedEventArgs e)
         {
             var tag = ((MenuItem)sender).Tag;
-            var node = FindTreeViewNode((string)tag);
+            var node = FindNodeInDataTree((string)tag);
 
             DoConvert(new List<TreeNode>() { node });
         }
 
-        private void TreeItemAddConvert(object sender, RoutedEventArgs e)
-        {
-            var tag = ((MenuItem)sender).Tag;
-            var node = FindTreeViewNode((string)tag);
+        //private void TreeItemAddConvert(object sender, RoutedEventArgs e)
+        //{
+        //    var tag = ((MenuItem)sender).Tag;
+        //    var node = FindTreeViewNode((string)tag);
 
-            //AddConvertNode(node);
-        }
+        //    //AddConvertNode(node);
+        //}
 
         private void OpenFavItemFolder(object sender, RoutedEventArgs e)
         {
@@ -513,7 +538,7 @@ namespace ExcelConverter
         private void OpenTreeItemFolder(object sender, RoutedEventArgs e)
         {
             var tag = ((MenuItem)sender).Tag;
-            var node = FindTreeViewNode((string)tag);
+            var node = FindNodeInDataTree((string)tag);
             node.AutoOpen();
         }
 
@@ -522,7 +547,7 @@ namespace ExcelConverter
             Button btn = (Button)sender;
             ItemContainerGenerator gen;
             TreeNode node = FindViewNodeByTag(DirTreeView.ItemContainerGenerator, (string)btn.Tag, out gen);
-
+            
             if (node == null)
                 return;
 
@@ -610,11 +635,11 @@ namespace ExcelConverter
         /// </summary>
         /// <param name="tag"></param>
         /// <returns></returns>
-        private TreeNode FindTreeViewNode(string tag)
-        {
-            ItemContainerGenerator gen;
-            return FindViewNodeByTag(DirTreeView.ItemContainerGenerator, tag, out gen);
-        }
+        //private TreeNode FindTreeViewNode(string tag)
+        //{
+        //    ItemContainerGenerator gen;
+        //    return FindViewNodeByTag(DirTreeView.ItemContainerGenerator, tag, out gen);
+        //}
 
         private TreeNode FindViewNodeByTag(ItemContainerGenerator container, string path, out ItemContainerGenerator generator)
         {
@@ -648,7 +673,12 @@ namespace ExcelConverter
 
         private void OnTreeViewItemCollapseStateChanged(object sender, RoutedEventArgs e)
         {
-            var treeViewItem = (TreeViewItem)e.Source;
+            var treeViewItem = e.Source as TreeViewItem;
+            if (treeViewItem == null)
+            {
+                return;
+            }
+
             var node = treeViewItem.DataContext as TreeNode;
             if (node != null)
             {

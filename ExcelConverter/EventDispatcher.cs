@@ -6,12 +6,12 @@ namespace ExcelConverter
     class EventDispatcher
     {
         private static Dictionary<TaskType, Delegate> _dictEvent;
-        private static List<ITask> _taskList;
+        private static List<TaskBase> _taskList;
 
         static EventDispatcher()
         {
             _dictEvent = new Dictionary<TaskType, Delegate>();
-            _taskList = new List<ITask>();
+            _taskList = new List<TaskBase>();
         }
 
         public static void SendEvent(TaskType type)
@@ -19,7 +19,7 @@ namespace ExcelConverter
             Delegate action;
             if (_dictEvent.TryGetValue(type, out action))
             { 
-                var task = new TimerTask();
+                var task = MemPool<TimerTask>.New();
                 task.Action = action as Action;
                 _taskList.Add(task);
             }
@@ -30,7 +30,7 @@ namespace ExcelConverter
             Delegate action;
             if (_dictEvent.TryGetValue(type, out action))
             { 
-                var task = new TimerTask<T>();
+                var task = MemPool<TimerTask<T>>.New();
                 task.Data = t;
                 task.Action = action as Action<T>;
                 _taskList.Add(task);
@@ -42,7 +42,7 @@ namespace ExcelConverter
             Delegate action;
             if (_dictEvent.TryGetValue(type, out action))
             {
-                var task = new TimerTask<T, K>();
+                var task = MemPool<TimerTask<T, K>>.New();
                 task.Data = t;
                 task.Data2 = k;
                 task.Action = action as Action<T, K>;
@@ -71,6 +71,8 @@ namespace ExcelConverter
             {
                 var task = _taskList[0];
                 task.DoAction();
+
+                task.Recycle();
                 _taskList.RemoveAt(0);
             }
         }

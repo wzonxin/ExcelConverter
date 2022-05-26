@@ -22,4 +22,7 @@
   <ItemGroup>
     <TrimmerRootAssembly Include="System.Text.Json" />
   </ItemGroup>
+  <Target Name="PostBuild" AfterTargets="PostBuildEvent">
+    <Exec Command="call copy /y $(TargetDir)\* G:\trunk_dev\data\convert_release\&#xD;&#xA;" />
+  </Target>
 </Project>

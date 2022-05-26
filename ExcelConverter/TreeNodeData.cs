@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Text.Json.Serialization;
+using System.Windows;
 
 namespace ExcelConverter
 {
@@ -24,35 +25,8 @@ namespace ExcelConverter
         {
             get { return GetWithSheetName(); } 
         }
-
-
-        //private List<string> _binNameList;
-
-        //public List<string> BinNameList
-        //{
-        //    get
-        //    {
-        //        if (_binNameList == null)
-        //        {
-        //            _binNameList = new List<string>();
-        //            if (SubSheetName != null)
-        //            {
-        //                for (int i = 0; i < SubSheetName.Count; i++)
-        //                {
-        //                    string binName = string.Empty;
-        //                    Utils.GetBatCmd(SubSheetName[i], ref binName);
-        //                    var arr = binName.Split(" ");
-        //                    if(arr.Length >= 3)
-        //                        _binNameList.Add(arr[2]);
-        //                }
-        //            }
-        //        }
-
-        //        return _binNameList;
-        //    }
-        //}
-
-        public bool _expanded;
+        
+        public bool _expanded = true;
         [JsonIgnore]
         public bool IsExpanded
         {
@@ -92,7 +66,7 @@ namespace ExcelConverter
             set
             {
                 _recordIsOn = value;
-                if(!IsFile)
+                if (!IsFile)
                 {
                     _rev++;
                     for (var i = 0; i < Child.Count; i++)
@@ -102,9 +76,18 @@ namespace ExcelConverter
                     _rev--;
                 }
 
-                if(_rev == 0)
+                if (_rev == 0)
                     EventDispatcher.SendEvent(TaskType.NodeCheckedChanged, this);
             }
+
+            //get
+            //{
+            //    return _recordIsOn;
+            //}
+            //set
+            //{
+            //    _recordIsOn = value;
+            //}
         }
 
         public static int _rev; //避免操作文件夹checkbox的value时 频繁reload TreeView
