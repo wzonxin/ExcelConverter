@@ -137,6 +137,8 @@ namespace ExcelConverter
                 if (_emptyNode == null)
                 {
                     _emptyNode = new TreeNode();
+                    _emptyNode.Path = "";
+                    _emptyNode.Name = "";
                     _emptyNode.Child = new List<TreeNode>();
                 }
                 retNode = _emptyNode;
@@ -154,7 +156,7 @@ namespace ExcelConverter
                     parentNodeClone1.IsExpanded = true;
                     parentNodeClone1.Child = new List<TreeNode>();
                 }
-
+                
                 parentNodeClone1.Child.Add(cloneChildNode);
             }
 
@@ -214,19 +216,6 @@ namespace ExcelConverter
                     FindMatchFolderMatchFile(childNode, filterStr);
                 }
             }
-        }
-
-        private static TreeNode CloneTree(TreeNode tree)
-        {
-            TreeNode cloneNode = tree.Clone();
-            if (tree.Child != null)
-            {
-                for (int i = 0; i < tree.Child.Count; i++)
-                {
-                    cloneNode.Child[i] = CloneTree(tree.Child[i]);
-                }
-            }
-            return cloneNode;
         }
 
         private static void SaveFileTree(TreeNode treeNode)
@@ -313,7 +302,7 @@ namespace ExcelConverter
             return list;
         }
 
-        public static void ConvertExcel(List<TreeNode> convertList, bool upDr)
+        public static void ConvertExcel(List<TreeNode> convertList, bool? upDr)
         {
             Utils.DebugPrettyLog("ConvertExcel start ...");
             List<string> pathList = new List<string>();
@@ -323,7 +312,7 @@ namespace ExcelConverter
             CopyXlsToTmpDir(pathList);
             
 
-            PushCommand(UpdateDr);
+            PushCommand(()=> UpdateDr(upDr));
             PushCommand(CovertCsv);
             PushCommand(ConvertBin);
             PushCommand(SaveModifyTime);
@@ -426,16 +415,28 @@ md .\csv
             string middle = WorkingPath + "\\Excel2Csv.exe ";
             ExecuteBatCommand(middle);
         }
-        private static void UpdateDr()
+
+        private static void UpdateDr(bool? needUpDr)
         {
             Utils.DebugPrettyLog("UpdateDr start...");
             string cmd = "";
 
+            bool sync = false;
             string svnUser, svnPassword, serverFolder;
-            bool upDr;
-            ReadSvnInfo(out svnUser, out svnPassword, out serverFolder, out upDr);
+            bool configUpDr;
+            ReadSvnInfo(out svnUser, out svnPassword, out serverFolder, out configUpDr);
 
-            if (upDr)
+            if (needUpDr == null)
+            {
+                //read config
+                sync = configUpDr;
+            }
+            else
+            {
+                sync = needUpDr.Value;
+            }
+
+            if (sync)
             {
                 if (!string.IsNullOrEmpty(svnUser) && !string.IsNullOrEmpty(svnPassword) &&
                     !string.IsNullOrEmpty(serverFolder))

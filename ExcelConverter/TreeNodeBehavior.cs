@@ -66,11 +66,12 @@ namespace ExcelConverter
                     cloneNode.Child = new List<TreeNode>(Child.Count);
                     for (var i = 0; i < Child.Count; i++)
                     {
-                        cloneNode.Child.Add(Child[i].Clone());
+                        var childCloneNode = Child[i].Clone();
+                        cloneNode.Child.Add(childCloneNode);
                     }
                 }
             }
-            cloneNode.JustSetChecked(IsOn);
+            cloneNode.IsOn = IsOn;
             return cloneNode;
         }
 
@@ -165,11 +166,9 @@ namespace ExcelConverter
 
         public void Recursive(Action<TreeNode> call)
         {
-            if (IsFile)
-            {
-                call(this);
-            }
-            else
+            call(this);
+
+            if (!IsFile)
             {
                 for (int i = 0; i < Child.Count; i++)
                 {
@@ -178,22 +177,60 @@ namespace ExcelConverter
             }
         }
 
-        public void JustSetChecked(bool isOn)
+        public static bool _banChildChange;
+        public void SetChecked(bool isOn)
         {
-            _recordIsOn = isOn;
+            IsOn = isOn;
+
+            if (_banChildChange)
+            {
+                return;
+            }
+
+            if (!IsFile)
+            {
+                for (int i = 0; i < Child.Count; i++)
+                {
+                    Child[i].SetChecked(isOn);
+                }
+            }
+        }
+
+        public bool CheckChildAllOn()
+        {
+            bool allOn = true;
+            for (int i = 0; i < Child.Count; i++)
+            {
+                if (!Child[i].IsOn)
+                {
+                    allOn = false;
+                    break;
+                }
+            }
+            return allOn;
         }
 
         public TreeNode FindNodeInChild(string tag)
         {
-            TreeNode retNode = null;
-            Recursive(node =>
+            if (Path == tag)
             {
-                if (node.Path == tag)
-                    retNode = node;
-            });
+                return this;
+            }
 
+            if (!IsFile && Child != null)
+            {
+                for (int i = 0; i < Child.Count; i++)
+                {
+                    var findNodeInChild = Child[i].FindNodeInChild(tag);
+                    if (findNodeInChild != null)
+                    {
+                        return findNodeInChild;
+                    }
+                }
+            }
 
-            return retNode;
+            return null;
+
         }
     }
 }

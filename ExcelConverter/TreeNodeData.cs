@@ -1,7 +1,10 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.ComponentModel;
+using System.Runtime.CompilerServices;
 using System.Text.Json.Serialization;
 using System.Windows;
+using ExcelConverter.Annotations;
 
 namespace ExcelConverter
 {
@@ -11,7 +14,7 @@ namespace ExcelConverter
         File,
     }
 
-    public partial class TreeNode
+    public partial class TreeNode : INotifyPropertyChanged
     {
         public string Name { get; set; }
         public List<string> SubSheetName { get; set; }
@@ -26,7 +29,7 @@ namespace ExcelConverter
             get { return GetWithSheetName(); } 
         }
         
-        public bool _expanded = true;
+        public bool _expanded;
         [JsonIgnore]
         public bool IsExpanded
         {
@@ -59,37 +62,19 @@ namespace ExcelConverter
         {
             get
             {
-                if (IsFile)
-                    return _recordIsOn;
-                return Child.TrueForAll(n => n.IsOn);
+                return _recordIsOn;
             }
             set
             {
                 _recordIsOn = value;
-                if (!IsFile)
+                if (this.PropertyChanged != null)
                 {
-                    _rev++;
-                    for (var i = 0; i < Child.Count; i++)
-                    {
-                        Child[i].IsOn = value;
-                    }
-                    _rev--;
+                    //通知ui 属性变化
+                    this.PropertyChanged.Invoke(this,new PropertyChangedEventArgs("IsOn"));
                 }
-
-                if (_rev == 0)
-                    EventDispatcher.SendEvent(TaskType.NodeCheckedChanged, this);
             }
-
-            //get
-            //{
-            //    return _recordIsOn;
-            //}
-            //set
-            //{
-            //    _recordIsOn = value;
-            //}
         }
-
-        public static int _rev; //避免操作文件夹checkbox的value时 频繁reload TreeView
+        
+        public event PropertyChangedEventHandler PropertyChanged;
     }
 }
