@@ -6,6 +6,12 @@ namespace ExcelConverter
 {
     public partial class TreeNode
     {
+        public TreeNode()
+        {
+            Path = string.Empty;
+            Name = string.Empty;
+        }
+
         public string GetBtnToolTip()
         {
             var withSheetName = GetWithSheetName();
@@ -170,6 +176,11 @@ namespace ExcelConverter
 
             if (!IsFile)
             {
+                if (Child == null)
+                {
+                    return;
+                }
+
                 for (int i = 0; i < Child.Count; i++)
                 {
                     Child[i].Recursive(call);

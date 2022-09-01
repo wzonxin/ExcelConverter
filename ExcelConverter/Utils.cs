@@ -90,6 +90,7 @@ namespace ExcelConverter
             {
                 saveInfoNode = new TreeNode();
             }
+
             saveInfoNode.Path = GetRelativePath(path);
             saveInfoNode.Name = GetFileName(path);
             saveInfoNode.SubSheetName = GetSheetListName(path, nodeType, oldInfoNode);
@@ -412,8 +413,19 @@ md .\csv
         private static void CovertCsv()
         {
             Utils.DebugPrettyLog("CovertCsv start...");
-            string middle = WorkingPath + "\\Excel2Csv.exe ";
-            ExecuteBatCommand(middle);
+
+            string cmdStr;
+            string customConvertBat = "start_conv_csv.bat";
+            if (File.Exists($"{WorkingPath}\\{customConvertBat}"))
+            {
+                cmdStr = "call " + customConvertBat;
+            }
+            else
+            {
+                cmdStr = WorkingPath + "\\Excel2Csv.exe ";
+            }
+
+            ExecuteBatCommand(cmdStr);
         }
 
         private static void UpdateDr(bool? needUpDr)
@@ -909,6 +921,17 @@ if exist build_info.log (del build_info.log)
 
             var nowTimeStamp = GetLocalDateTimeUtc();
             File.WriteAllText(lastConvTimeTxt, nowTimeStamp.ToString());
+        }
+
+        public static void SaveLogFile(string logContent)
+        {
+            string logFilePath = WorkingPath + "\\excel_debug.log";
+            logContent = string.Format("{0}\n{1}\n", DateTime.Now, logContent);
+            var file = File.Open(logFilePath, FileMode.Append);
+            var bytes = Encoding.UTF8.GetBytes(logContent);
+            file.Write(bytes);
+            file.Flush();
+            file.Close();
         }
 
     }

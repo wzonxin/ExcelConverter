@@ -6,12 +6,13 @@ namespace ExcelConverter
     class EventDispatcher
     {
         private static Dictionary<TaskType, Delegate> _dictEvent;
-        private static List<TaskBase> _taskList;
+        private static Queue<TaskBase> _taskList;
+        private const int _roundHandleMaxEventCnt = 10;
 
         static EventDispatcher()
         {
             _dictEvent = new Dictionary<TaskType, Delegate>();
-            _taskList = new List<TaskBase>();
+            _taskList = new Queue<TaskBase>();
         }
 
         public static void SendEvent(TaskType type)
@@ -21,7 +22,7 @@ namespace ExcelConverter
             { 
                 var task = MemPool<TimerTask>.New();
                 task.Action = action as Action;
-                _taskList.Add(task);
+                _taskList.Enqueue(task);
             }
         }
         
@@ -33,7 +34,7 @@ namespace ExcelConverter
                 var task = MemPool<TimerTask<T>>.New();
                 task.Data = t;
                 task.Action = action as Action<T>;
-                _taskList.Add(task);
+                _taskList.Enqueue(task);
             }
         }
         
@@ -46,7 +47,7 @@ namespace ExcelConverter
                 task.Data = t;
                 task.Data2 = k;
                 task.Action = action as Action<T, K>;
-                _taskList.Add(task);
+                _taskList.Enqueue(task);
             }
         }
 
@@ -67,13 +68,14 @@ namespace ExcelConverter
 
         public static void CheckTick()
         {
-            if(_taskList.Count > 0)
+            int executeCnt = 0;
+            while(_taskList.Count > 0 && executeCnt <= _roundHandleMaxEventCnt)
             {
-                var task = _taskList[0];
+                var task = _taskList.Dequeue();
                 task.DoAction();
 
                 task.Recycle();
-                _taskList.RemoveAt(0);
+                executeCnt++;
             }
         }
 

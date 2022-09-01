@@ -10,6 +10,8 @@ namespace ExcelConverter
     /// <summary>
     /// Interaction logic for MainWindow.xaml
     /// </summary>
+    // ReSharper disable once UnusedMember.Global
+    // ReSharper disable once RedundantExtendsListEntry
     public partial class MainWindow : Window
     {
         public List<TreeNode> DataSource { get; set; }
@@ -51,7 +53,7 @@ namespace ExcelConverter
             // Set the callback to just show the time ticking away
             // NOTE: We are using a control so this has to run on 
             // the UI thread
-            _timer.Tick += new EventHandler(TimerTick);
+            _timer.Tick += TimerTick;
             _timer.Start();
 
             InitEvent();
@@ -71,7 +73,6 @@ namespace ExcelConverter
             EventDispatcher.RegdEvent<float>(TaskType.UpdateSearchProgress, UpdateProgress);
             EventDispatcher.RegdEvent<TreeNode>(TaskType.FinishedSearch, OnFinishedSearch);
             EventDispatcher.RegdEvent(TaskType.ConvertFinishWithFailed, OnConvertFinishWithFailed);
-            //EventDispatcher.RegdEvent<TreeNode>(TaskType.NodeCheckedChanged, NodeCheckedChanged);
         }
 
         private void TimerTick(object s, EventArgs a)
@@ -96,16 +97,11 @@ namespace ExcelConverter
         {
             _convertList.Sort(Utils.SortList);
 
-            float width = 70;
             float height = 30;
-            int colMax = 6;
 
             ConvertGrid.Children.Clear();
             for (int i = 0; i < _convertList.Count; i++)
             {
-                int row = i / colMax;
-                int col = i % colMax;
-
                 TreeNode convertNode = _convertList[i];
                 if (!convertNode.IsFile)
                 {
@@ -120,12 +116,6 @@ namespace ExcelConverter
                 removeBt.Content = "X";
                 removeBt.Width = 20;
                 removeBt.Height = height - 10;
-
-                //Canvas.SetTop(bt, row * height + 5);
-                //Canvas.SetLeft(bt, col * width + 5);
-
-                //Canvas.SetTop(removeBt, row * height + 5);
-                //Canvas.SetLeft(removeBt, row * width + 5 + 50);
 
                 StackPanel panel = new StackPanel();
                 panel.Orientation = Orientation.Horizontal;
@@ -288,43 +278,68 @@ namespace ExcelConverter
 
         private void DoConvert(List<TreeNode> nodeList, bool? upDr = null)
         {
+            if (_dlg != null)
+            {
+                return;
+            }
+
             ConvertDialog dlg = new ConvertDialog();
             dlg.Owner = this;
-            dlg.OnClosedEvent += Utils.CleanConvert;
+            dlg.OnClosedEvent += OnConvertDialogClose;
             _dlg = dlg;
             dlg.Show();
 
             Utils.ConvertExcel(nodeList, upDr);
         }
 
+        private void OnConvertDialogClose()
+        {
+            _dlg = null;
+            Utils.CleanConvert();
+        }
+
         private void SearchTextChange(object sender, TextChangedEventArgs e)
         {
-            string inputText = SearchBox.Text;
-            if (!string.IsNullOrEmpty(inputText))
+            try
             {
-                if (!string.IsNullOrEmpty(m_lastSearchInput) &&  inputText.Contains(m_lastSearchInput))
+                string inputText = SearchBox.Text;
+                if (inputText.Equals(m_lastSearchInput))
                 {
-                    //直接从上次结果找
-                    _searchTreeNode = Utils.SearchTree(_searchTreeNode, inputText);
+                    return;
+                }
+
+                if (!string.IsNullOrEmpty(inputText))
+                {
+                    if (!string.IsNullOrEmpty(m_lastSearchInput) && inputText.Contains(m_lastSearchInput))
+                    {
+                        //直接从上次结果找
+                        _searchTreeNode = Utils.SearchTree(_searchTreeNode, inputText);
+                    }
+                    else
+                    {
+                        _searchTreeNode = Utils.SearchTree(_rootNode, inputText);
+                    }
+
+                    SetTreeSource(_searchTreeNode);
+                    SyncConvert2TreeShow();
                 }
                 else
                 {
-                    _searchTreeNode = Utils.SearchTree(_rootNode, inputText);
+                    _searchTreeNode = null;
+                    SetTreeSource(_rootNode);
+
+                    SyncConvert2TreeShow();
+                    UpdateParentNodeCheck(true);
                 }
-
-                SetTreeSource(_searchTreeNode);
-                SyncConvert2TreeShow();
+                FuncTabControl.SelectedIndex = 0;
+                m_lastSearchInput = inputText;
             }
-            else
+            catch (Exception exception)
             {
-                _searchTreeNode = null;
-                SetTreeSource(_rootNode);
-
-                SyncConvert2TreeShow();
-                UpdateParentNodeCheck(true);
+                string logContent = exception.Message + "\n" + Environment.StackTrace;
+                MessageBox.Show("搜索有误，请查看日志excel_debug.log\n" + logContent);
+                Utils.SaveLogFile(logContent);
             }
-            FuncTabControl.SelectedIndex = 0;
-            m_lastSearchInput = inputText;
         }
         
         private void ClickClearSearchBtn(object sender, RoutedEventArgs e)
@@ -336,6 +351,8 @@ namespace ExcelConverter
         {
             DataSource = node.Child;
             DirTreeView.ItemsSource = DataSource;
+
+            EmptyTipPanel.Visibility = node.Child == null || node.Child.Count == 0 ? Visibility.Visible : Visibility.Hidden;
         }
 
         private void ScanDir(object sender, RoutedEventArgs e)
@@ -348,7 +365,13 @@ namespace ExcelConverter
         {
             _convertList.Clear();
             RefreshConvertList();
-            _curTreeNode.SetChecked(false);
+
+            if (_searchTreeNode != null)
+            {
+                _searchTreeNode.SetChecked(false);
+            }
+
+            _rootNode.SetChecked(false);
         }
         
         private void UpdateProgress(float value)
@@ -362,7 +385,7 @@ namespace ExcelConverter
             _rootNode = node;
             SetTreeSource(node);
             ScanLabel.Content = "扫描完成";
-            SearchTextChange(null, null);
+            SearchBox.Text = null;
 
             MessageBox.Show("扫描完成");
         }
@@ -521,7 +544,10 @@ namespace ExcelConverter
         {
             var tag = ((MenuItem)sender).Tag;
             var node = _favList.Find(treeNode => (string)tag == treeNode.Path);
-            node.AutoOpen();
+            if (node != null)
+            {
+                node.AutoOpen();
+            }
         }
 
         private void OpenTreeItemFolder(object sender, RoutedEventArgs e)
@@ -564,7 +590,11 @@ namespace ExcelConverter
             //    return;
 
             var tag = (string)btn.Tag;
-            var node = _favList.Find(treeNode => (string)tag == treeNode.Path);
+            var node = _favList.Find(treeNode => tag == treeNode.Path);
+            if (node == null)
+            {
+                return;
+            }
 
             if (node.IsFile)
             {
@@ -585,7 +615,11 @@ namespace ExcelConverter
             //    return;
 
             var tag = (string)btn.Tag;
-            var node = _convertList.Find(treeNode => (string)tag == treeNode.Path);
+            var node = _convertList.Find(treeNode => tag == treeNode.Path);
+            if (node == null)
+            {
+                return;
+            }
 
             if (node.IsFile)
             {
@@ -618,18 +652,7 @@ namespace ExcelConverter
 
             return retNode;
         }
-
-        /// <summary>
-        /// 从ui绑定的data集合里取node
-        /// </summary>
-        /// <param name="tag"></param>
-        /// <returns></returns>
-        //private TreeNode FindTreeViewNode(string tag)
-        //{
-        //    ItemContainerGenerator gen;
-        //    return FindViewNodeByTag(DirTreeView.ItemContainerGenerator, tag, out gen);
-        //}
-
+        
         private TreeNode FindViewNodeByTag(ItemContainerGenerator container, string path, out ItemContainerGenerator generator)
         {
             generator = null;
@@ -735,9 +758,14 @@ namespace ExcelConverter
 
         private void OnCheckClick(object sender, RoutedEventArgs e)
         {
+            if (_dlg != null)
+            {
+                return;
+            }
+
             ConvertDialog dlg = new ConvertDialog();
             dlg.Owner = this;
-            dlg.OnClosedEvent += Utils.CleanConvert;
+            dlg.OnClosedEvent += OnConvertDialogClose;
             dlg.Show();
 
             ServerLogChecker.ParseServerLog();
@@ -774,7 +802,7 @@ namespace ExcelConverter
             var treeNode = FindNodeInDataTree(tag);
             if (treeNode != null)
             {
-                treeNode.SetChecked((bool)checkBox.IsChecked);
+                treeNode.SetChecked(checkBox.IsChecked != null && (bool)checkBox.IsChecked);
 
                 //SyncTree2ConvertShow();
 

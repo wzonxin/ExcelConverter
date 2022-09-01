@@ -23,6 +23,6 @@
     <TrimmerRootAssembly Include="System.Text.Json" />
   </ItemGroup>
   <Target Name="PostBuild" AfterTargets="PostBuildEvent">
-    <Exec Command="call copy /y $(TargetDir)\* G:\trunk_dev\data\ExcelConvert\&#xD;&#xA;" />
+    <Exec Command="REM call copy /y $(TargetDir)\* G:\trunk_dev\data\ExcelConvert\&#xD;&#xA;" />
   </Target>
 </Project>

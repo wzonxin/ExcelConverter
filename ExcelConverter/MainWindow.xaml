@@ -150,6 +150,12 @@
                             </Style>
                         </TreeView.ItemContainerStyle>
                     </TreeView>
+
+                    <VirtualizingStackPanel Visibility="Hidden" Name="EmptyTipPanel" Margin="0,374,30,264" >
+                        <Label Content="404 NOT FOUND" FontSize="28" HorizontalContentAlignment="Center" VerticalContentAlignment="Center" />
+                        <Label Content=" Tips:如果新增了表格，可以点击上方 修复-重新扫描文件夹" Foreground="HotPink" HorizontalContentAlignment="Center" VerticalContentAlignment="Center" />
+
+                    </VirtualizingStackPanel>
                 </Grid>
             </TabItem>
             <TabItem Header="收藏列表" FontSize="14">
