@@ -2,7 +2,7 @@
   "profiles": {
     "ExcelConverter": {
       "commandName": "Project",
-      "workingDirectory": "D:\\doc\\xianxia-lin"
+      "workingDirectory": "Y:\\tmp\\ExcelConverter\\ExcelConverter"
     }
   }
 }

@@ -14,7 +14,8 @@ namespace ExcelConverter
 
         public static List<string> GetSelectDir()
         {
-            DirectoryInfo di = new DirectoryInfo(@"xls");
+            var xlsPath = Utils.WorkingPath + "\\xls";
+            DirectoryInfo di = new DirectoryInfo(xlsPath);
             DirectoryInfo[] dirs = di.GetDirectories();
 
             foreach (DirectoryInfo dirInfo in dirs)

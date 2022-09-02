@@ -4,7 +4,6 @@ using System.ComponentModel;
 using System.Runtime.CompilerServices;
 using System.Text.Json.Serialization;
 using System.Windows;
-using ExcelConverter.Annotations;
 
 namespace ExcelConverter
 {
@@ -26,21 +25,21 @@ namespace ExcelConverter
         [JsonIgnore]
         public string WithSheetName
         {
-            get { return GetWithSheetName(); } 
+            get { return GetWithSheetName(); }
         }
-        
+
         public bool _expanded;
+
         [JsonIgnore]
         public bool IsExpanded
         {
-            get { return _expanded; } 
+            get { return _expanded; }
             set { _expanded = value; }
         }
 
-        [JsonIgnore]
-        public bool IsMatch { get; set; }
-        [JsonIgnore]
-        public bool IsFile => Type == NodeType.File;
+        [JsonIgnore] public bool IsMatch { get; set; }
+        [JsonIgnore] public bool IsFile => Type == NodeType.File;
+
         [JsonIgnore]
         public System.Windows.Media.Brush Color
         {
@@ -50,31 +49,34 @@ namespace ExcelConverter
                 {
                     return System.Windows.Media.Brushes.LightGreen;
                 }
+
                 return System.Windows.Media.Brushes.White;
             }
         }
+
         [JsonIgnore]
-        public string SingleFileName { get { return Utils.GetFileName(Path); } }
+        public string SingleFileName
+        {
+            get { return Utils.GetFileName(Path); }
+        }
 
         private bool _recordIsOn;
+
         [JsonIgnore]
-        public bool IsOn 
+        public bool IsOn
         {
-            get
-            {
-                return _recordIsOn;
-            }
+            get { return _recordIsOn; }
             set
             {
                 _recordIsOn = value;
                 if (this.PropertyChanged != null)
                 {
                     //通知ui 属性变化
-                    this.PropertyChanged.Invoke(this,new PropertyChangedEventArgs("IsOn"));
+                    this.PropertyChanged.Invoke(this, new PropertyChangedEventArgs("IsOn"));
                 }
             }
         }
-        
+
         public event PropertyChangedEventHandler PropertyChanged;
     }
 }

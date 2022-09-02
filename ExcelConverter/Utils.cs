@@ -19,7 +19,8 @@ namespace ExcelConverter
         private static Dictionary<int, string[]> _batFileStrSplitDict = new Dictionary<int, string[]>();
         private static Queue<Action> _cmdQueue = new Queue<Action>();
 
-        public static string WorkingPath = "";
+        public static string WorkingPath = "C:\\Users\\dmlt\\Desktop\\data_a3\\a3_data";
+
         public static void InitWorkingPath()
         {
             //string runningPath = AppDomain.CurrentDomain.BaseDirectory;
@@ -45,7 +46,7 @@ namespace ExcelConverter
 #endif
             Utils.WorkingPath = path;
 
-            //System.Windows.MessageBox.Show($"Utils.WorkingPath:{Utils.WorkingPath}");
+            // System.Windows.MessageBox.Show($"Utils.WorkingPath:{Utils.WorkingPath}");
         }
 
         public static void GenFileTree()
@@ -73,10 +74,7 @@ namespace ExcelConverter
         private static Dictionary<string, TreeNode> NodeToDict(TreeNode rootNode)
         {
             Dictionary<string, TreeNode> treeDict = new Dictionary<string, TreeNode>();
-            rootNode.Recursive(t =>
-            {
-                treeDict[t.Path] = t;
-            });
+            rootNode.Recursive(t => { treeDict[t.Path] = t; });
             return treeDict;
         }
 
@@ -130,6 +128,7 @@ namespace ExcelConverter
         }
 
         private static TreeNode _emptyNode;
+
         public static TreeNode SearchTree(TreeNode node, string filterStr)
         {
             var retNode = FilterTree(node, filterStr);
@@ -142,11 +141,13 @@ namespace ExcelConverter
                     _emptyNode.Name = "";
                     _emptyNode.Child = new List<TreeNode>();
                 }
+
                 retNode = _emptyNode;
             }
+
             return retNode;
         }
-        
+
         private static TreeNode FilterTree(TreeNode node, string filterStr)
         {
             void AddChildNodeClone(ref TreeNode parentNodeClone1, TreeNode cloneChildNode)
@@ -157,7 +158,7 @@ namespace ExcelConverter
                     parentNodeClone1.IsExpanded = true;
                     parentNodeClone1.Child = new List<TreeNode>();
                 }
-                
+
                 parentNodeClone1.Child.Add(cloneChildNode);
             }
 
@@ -177,7 +178,7 @@ namespace ExcelConverter
             {
                 return null;
             }
-            
+
             for (int i = 0; i < childs.Count; i++)
             {
                 TreeNode child = childs[i];
@@ -200,6 +201,7 @@ namespace ExcelConverter
                     }
                 }
             }
+
             return cloneParentNode;
         }
 
@@ -214,6 +216,7 @@ namespace ExcelConverter
                     {
                         childNode.IsMatch = true;
                     }
+
                     FindMatchFolderMatchFile(childNode, filterStr);
                 }
             }
@@ -272,9 +275,10 @@ namespace ExcelConverter
                 if (root == null)
                     root = new TreeNode();
             }
+
             return root;
         }
-        
+
         public static List<TreeNode> ReadFav()
         {
             string saveFavDir = Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData);
@@ -300,6 +304,7 @@ namespace ExcelConverter
                 if (list == null)
                     list = new List<TreeNode>();
             }
+
             return list;
         }
 
@@ -312,8 +317,7 @@ namespace ExcelConverter
             ConvertToPath(convertList, pathList);
             CopyXlsToTmpDir(pathList);
             
-
-            PushCommand(()=> UpdateDr(upDr));
+            PushCommand(() => UpdateDr(upDr));
             PushCommand(CovertCsv);
             PushCommand(ConvertBin);
             PushCommand(SaveModifyTime);
@@ -344,86 +348,42 @@ namespace ExcelConverter
             {
                 _curProcess.Kill();
             }
+
             _curProcess = null;
         }
 
         private static void CopyXlsToTmpDir(List<string> pathList)
         {
-            string copyStr = GetEnterDirStr() + @"
-rd /S /Q .\xls_tmp
-rd /S /Q .\csv
-md .\xls_tmp
-md .\csv
-";
-
-            List<string[]> combineList = null;
-            string combineFile = $"{WorkingPath}\\{combineFileName}";
-            if (File.Exists(combineFile))
+            var tmpPath = Path.Combine(WorkingPath, "xls_tmp");
+            if (Directory.Exists(tmpPath))
             {
-                var bytes = File.ReadAllBytes(combineFile);
-                var str = Encoding.GetEncoding("GBK").GetString(bytes);
-                combineList = JsonSerializer.Deserialize<List<string[]>>(str);
+                Directory.Delete(tmpPath, true);
             }
+            
+            Directory.CreateDirectory(tmpPath);
 
-            if (!Directory.Exists(WorkingPath + "\\xls_tmp\\"))
-                Directory.CreateDirectory(WorkingPath + "\\xls_tmp\\");
-
-            for (int i = 0; i < pathList.Count; i++)
+            foreach (var file in pathList)
             {
-                copyStr += "copy /y " + pathList[i] + " " + WorkingPath + "\\xls_tmp\\" + GetFileName(pathList[i]) + "\r\n";
-                //var fileName = GetFileName(pathList[i]);
-                //pathList[i] = pathList[i].Remove(pathList[i].LastIndexOf("\\xls\\")) + "\\xls_tmp\\" + fileName;
-
-                //合表
-                if (combineList != null)
-                {
-                    string[] copyArr = null;
-                    int inIndex2 = -1;
-                    for (int j = 0; j < combineList.Count; j++)
-                    {
-                        var arr = combineList[j];
-                        for (int k = 0; k < arr.Length; k++)
-                        {
-                            if (pathList[i].EndsWith(arr[k]))
-                            {
-                                copyArr = arr;
-                                inIndex2 = k;
-                                break;
-                            }
-                        }
-                    }
-
-                    if (copyArr == null) continue;
-
-                    //copy extra excel
-                    for (int copyIdx = 0; copyIdx < copyArr.Length; copyIdx++)
-                    {
-                        if (copyIdx != inIndex2)
-                        {
-                            string extraPathRelativeWorkPath = copyArr[copyIdx];
-                            copyStr += $"copy /y {WorkingPath}\\xls\\{extraPathRelativeWorkPath} {WorkingPath}\\xls_tmp\\{GetFileName(extraPathRelativeWorkPath)}\r\n";
-                        }
-                    }
-                }
+                var fileName = System.IO.Path.GetFileName(file);
+                File.Copy(file, Path.Combine(WorkingPath, "xls_tmp", fileName), true);
             }
-
-            ExecuteBatCommand(copyStr, true);
+            
         }
 
         private static void CovertCsv()
         {
             Utils.DebugPrettyLog("CovertCsv start...");
+            
+            var tmpXlsPath = Path.Combine(WorkingPath, "xls_tmp");
+            var outCsvPath = Path.Combine(WorkingPath, "csv");
+            if (Directory.Exists(outCsvPath))
+            {
+                Directory.Delete(outCsvPath, true);
+            }
+            
+            Directory.CreateDirectory(outCsvPath);
 
-            string cmdStr;
-            string customConvertBat = "start_conv_csv.bat";
-            if (File.Exists($"{WorkingPath}\\{customConvertBat}"))
-            {
-                cmdStr = "call " + customConvertBat;
-            }
-            else
-            {
-                cmdStr = WorkingPath + "\\Excel2Csv.exe ";
-            }
+            var cmdStr = Path.Combine(WorkingPath, "x2c\\E2C.exe") + " " + tmpXlsPath + "\\ " + outCsvPath;
 
             ExecuteBatCommand(cmdStr);
         }
@@ -472,19 +432,36 @@ md .\csv
         {
             Utils.DebugPrettyLog("ConvertBin start...");
             var prefix = @"set path=C:\Windows\System32;%path%" +
-                     GetEnterDirStr();
+                         GetEnterDirStr();
             var csvList = Directory.GetFiles($"{WorkingPath}\\csv", "*.csv");
             
+            var outBinPath = Path.Combine(WorkingPath, "bin");
+            if (Directory.Exists(outBinPath))
+            {
+                Directory.Delete(outBinPath, true);
+                Directory.CreateDirectory(outBinPath);
+            }
+            
+            var outBinCliPath = Path.Combine(WorkingPath, "bin_cli");
+            if (Directory.Exists(outBinCliPath))
+            {
+                Directory.Delete(outBinCliPath, true);
+                Directory.CreateDirectory(outBinCliPath);
+            }
 
-            string commandLines = prefix + @"rd /S /Q .\bin
-rd /S /Q .\bin_cli
-md .\bin
-call path_define.bat
-md .\bin_cli
+            var buildLogFile = Path.Combine(WorkingPath, "build_log.log");
+            if (File.Exists(buildLogFile))
+            {
+                File.Delete(buildLogFile);
+            }
+            
+            var buildErrorFile = Path.Combine(WorkingPath, "build_err.log");
+            if (File.Exists(buildErrorFile))
+            {
+                File.Delete(buildErrorFile);
+            }
 
-if exist build_err.log (del build_err.log)
-if exist build_info.log (del build_info.log)
-";
+            string commandLines = prefix;
 //call SshGenXml.exe " + $"{svnUser} {svnPassword} {serverFolder}\r\n\r\n";
             var lineIndexList = new List<int>();
             for (int fileIdx = 0; fileIdx < csvList.Length; fileIdx++)
@@ -539,6 +516,7 @@ if exist build_info.log (del build_info.log)
         }
 
         private static Process _curProcess;
+
         private static void ExecuteBatCommand(string command, bool wait = false)
         {
             string batPath = CreateTmpBat(command);
@@ -557,7 +535,7 @@ if exist build_info.log (del build_info.log)
             {
                 EventDispatcher.SendEvent(TaskType.ConvertOutput, args.Data);
             };
-            process.EnableRaisingEvents = true;                      // 启用Exited事件  
+            process.EnableRaisingEvents = true; // 启用Exited事件  
             process.Exited += ProcessOnExited;
             process.BeginOutputReadLine();
 
@@ -594,7 +572,8 @@ if exist build_info.log (del build_info.log)
             return batPath;
         }
 
-        private static DateTime _lastTime; 
+        private static DateTime _lastTime;
+
         public static void GetBatCmd()
         {
             string batPath = WorkingPath + "\\策划转表_公共.bat";
@@ -607,6 +586,7 @@ if exist build_info.log (del build_info.log)
                 {
                     _batFileStrSplitDict.Add(i, _batFileStrLine[i].Split(' '));
                 }
+
                 _lastTime = file.LastWriteTime;
             }
         }
@@ -625,11 +605,11 @@ if exist build_info.log (del build_info.log)
             List<string> binList = new List<string>();
             for (int i = 0; i < lines.Length; i++)
             {
-                if(string.IsNullOrEmpty(lines[i]))
+                if (string.IsNullOrEmpty(lines[i]))
                     continue;
 
                 var arr = lines[i].Split(' ');
-                if(arr.Length < 4)
+                if (arr.Length < 4)
                     continue;
 
                 binList.Clear();
@@ -647,7 +627,7 @@ if exist build_info.log (del build_info.log)
                     for (int j = startIndex; j < arr.Length; j++)
                     {
                         string sheetName = arr[j];
-                        if(string.IsNullOrEmpty(sheetName))
+                        if (string.IsNullOrEmpty(sheetName))
                             continue;
 
                         BinListNode node = new BinListNode();
@@ -687,7 +667,7 @@ if exist build_info.log (del build_info.log)
             var disk = pathArr[0];
             var folderPath = pathArr[1];
             return "\r\n" + disk + ":\r\n"
-                + "cd " + folderPath + "\r\n";
+                   + "cd " + folderPath + "\r\n";
         }
 
         private static List<string> GetSheetListName(string xlsPath, NodeType nodeType, TreeNode oldNode)
@@ -741,6 +721,7 @@ if exist build_info.log (del build_info.log)
                 //    sheetNames.Add(sheetName);
                 //}
             }
+
             return sheetNames;
         }
 
@@ -770,9 +751,9 @@ if exist build_info.log (del build_info.log)
         private static DateTime GetLastModifyTime()
         {
             string lastConvTimeTxt = WorkingPath + "\\last_conv_time.txt";
-            if(!File.Exists(lastConvTimeTxt))
+            if (!File.Exists(lastConvTimeTxt))
                 return DateTime.Now;
-            
+
             var timeStamp = File.ReadAllText(lastConvTimeTxt);
             int res;
             int.TryParse(timeStamp, out res);
@@ -815,6 +796,7 @@ if exist build_info.log (del build_info.log)
         }
 
         private static string _svnInfo = "\\svn_info";
+
         public static void ReadSvnInfo(out string user, out string password, out string folder, out bool drChecked)
         {
             user = string.Empty;
@@ -829,17 +811,17 @@ if exist build_info.log (del build_info.log)
             var lines = File.ReadAllLines(path);
             if (lines.Length >= 1)
                 user = lines[0];
-            
+
             if (lines.Length >= 2)
                 password = lines[1];
-            
+
             if (lines.Length >= 3)
                 folder = lines[2];
 
             if (lines.Length >= 4)
                 drChecked = int.Parse(lines[3]) > 0;
         }
-        
+
         public static void SaveSvnInfo(string user, string password, string folder, bool drChecked)
         {
             string cv = drChecked ? "1" : "0";
@@ -872,12 +854,13 @@ if exist build_info.log (del build_info.log)
                 if (fs != null)
                     fs.Close();
             }
-            return inUse;//true表示正在使用,false没有使用
+
+            return inUse; //true表示正在使用,false没有使用
         }
 
         public static int SortList(TreeNode node1, TreeNode node2)
         {
-            if(node1.Type != node2.Type)
+            if (node1.Type != node2.Type)
             {
                 return (node1.Type - node2.Type);
             }
@@ -908,7 +891,8 @@ if exist build_info.log (del build_info.log)
             string prettyLogAfter = "\n" + prettyLogBefore;
             string prettyLogPre = "#  ";
 
-            EventDispatcher.SendEvent(TaskType.ConvertOutput, prettyLogBefore + prettyLogPre + outputLog + prettyLogAfter);
+            EventDispatcher.SendEvent(TaskType.ConvertOutput,
+                prettyLogBefore + prettyLogPre + outputLog + prettyLogAfter);
         }
 
 
@@ -933,6 +917,5 @@ if exist build_info.log (del build_info.log)
             file.Flush();
             file.Close();
         }
-
     }
 }

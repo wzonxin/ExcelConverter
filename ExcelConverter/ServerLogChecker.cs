@@ -9,7 +9,7 @@ namespace ExcelConverter
     class ServerLogChecker
     {
         public static string serverPath = "";
-        public static string serverLogPathDefine = "path_define.bat";
+        public static string serverLogPathDefine =  Utils.WorkingPath + "\\path_define.bat";
         public static string serverLogPathKeyWord = "server_dir";
         public static string serverLogPath = "";
         public static string serverLogPathFix = "\\log\\zone_svr";
@@ -41,7 +41,8 @@ namespace ExcelConverter
 
         public static void InitBinExcelMap()
         {
-            var binExcelMapFile = File.ReadAllLines("策划转表_公共.bat", Encoding.GetEncoding("GBK"));
+            var strFlePath = Utils.WorkingPath + "\\策划转表_公共.bat";
+            var binExcelMapFile = File.ReadAllLines(strFlePath, Encoding.GetEncoding("GBK"));
 
             foreach (var line in binExcelMapFile)
             {
